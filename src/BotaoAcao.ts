@@ -1,5 +1,5 @@
 export default {
-	criar(texto, handler) {
+	criar(texto: string, handler: EventHandlerNonNull) {
 		const botao = document.createElement('button');
 		botao.className = 'infraButton';
 		botao.textContent = texto;
