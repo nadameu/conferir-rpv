@@ -28,6 +28,7 @@
 		"@babel/preset-env": "^7.0.0-beta.42",
 		"@babel/preset-typescript": "^7.0.0-beta.42",
 		"@types/clean-webpack-plugin": "^0.1.2",
+		"@types/greasemonkey": "0.0.28",
 		"@types/intl": "^1.2.0",
 		"@types/jest": "^22.2.2",
 		"@types/node": "^9.6.0",
