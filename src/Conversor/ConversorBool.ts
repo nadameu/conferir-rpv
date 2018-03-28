@@ -1,6 +1,4 @@
-import AnalisadorConversor from './Conversor';
-
-const ConversorBool: AnalisadorConversor<boolean> = {
+const ConversorBool: AnalisadorConversor<boolean | undefined> = {
 	analisar(texto) {
 		return texto === '' ? undefined : texto === 'Sim';
 	},

@@ -1,11 +1,12 @@
-import { Analisador } from './Conversor';
 import ConversorMoeda from './ConversorMoeda';
 
 const ConversorValores: Analisador<Valores> = {
 	analisar(texto): Valores {
-		let [total, principal, juros] = texto
-			.match(/^([\d.,]+)\s+\(([\d.,]+) \+ ([\d.,]+)\)$/)
-			.slice(1);
+		const match = texto.match(/^([\d.,]+)\s+\(([\d.,]+) \+ ([\d.,]+)\)$/);
+		if (!match || match.length !== 4) {
+			throw new TypeError(`Valor não corresponde ao esperado: "${texto}".`);
+		}
+		let [, total, principal, juros] = match;
 		return {
 			principal: ConversorMoeda.analisar(principal),
 			juros: ConversorMoeda.analisar(juros),
@@ -13,3 +14,5 @@ const ConversorValores: Analisador<Valores> = {
 		};
 	},
 };
+
+export default ConversorValores;

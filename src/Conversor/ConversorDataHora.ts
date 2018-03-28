@@ -1,23 +1,26 @@
-import AnalisadorConversor from './Conversor';
-import * as Utils from '../Utils';
+import parseDecimalInt from '../Utils/parseDecimalInt';
 
 const ConversorDataHora: AnalisadorConversor<Date> = {
 	analisar(texto) {
-		let [d, m, y, h, i, s] = texto
-			.match(/^(\d\d)\/(\d\d)\/(\d\d\d\d) (\d\d):(\d\d):(\d\d)$/)
-			.slice(1);
+		const match = texto.match(
+			/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/
+		);
+		if (!match || match.length !== 7) {
+			throw new TypeError(`Valor não corresponde a uma data/hora: "${texto}".`);
+		}
+		let [, d, m, y, h, i, s] = match;
 		return new Date(
-			Utils.parseDecimalInt(y),
-			Utils.parseDecimalInt(m) - 1,
-			Utils.parseDecimalInt(d),
-			Utils.parseDecimalInt(h),
-			Utils.parseDecimalInt(i),
-			Utils.parseDecimalInt(s)
+			parseDecimalInt(y),
+			parseDecimalInt(m) - 1,
+			parseDecimalInt(d),
+			parseDecimalInt(h),
+			parseDecimalInt(i),
+			parseDecimalInt(s)
 		);
 	},
 
 	converter(valor) {
-		return valor.toLocaleString();
+		return valor.toLocaleString('pt-BR');
 	},
 };
 

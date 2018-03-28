@@ -1,9 +1,8 @@
-import AnalisadorConversor from './Conversor';
-import * as Utils from '../Utils';
+import parseDecimalInt from '../Utils/parseDecimalInt';
 
 const ConversorInt: AnalisadorConversor<number> = {
 	analisar(texto) {
-		return Utils.parseDecimalInt('0' + texto);
+		return parseDecimalInt('0' + texto);
 	},
 
 	converter(valor) {
