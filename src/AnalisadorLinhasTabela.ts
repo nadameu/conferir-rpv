@@ -1,8 +1,11 @@
 import Analisador from './Analisador';
 import Padrao from './Padrao';
 
-export default class AnalisadorLinhasTabela extends Analisador {
+export default class AnalisadorLinhasTabela extends Analisador<
+	HTMLTableElement
+> {
 	padroes: Padrao[];
+	prefixo?: string;
 
 	constructor(...padroes: Padrao[]) {
 		super();

@@ -1,22 +1,21 @@
-export default abstract class Analisador {
-	conversores = {};
-	prefixo = null;
+export default abstract class Analisador<T> {
+	conversores: Analisadores = {};
 
-	aplicarConversores(obj) {
+	aplicarConversores(obj: { [nome: string]: string }) {
 		for (let nome in this.conversores) {
-			if (!obj.hasOwnProperty(nome)) continue;
+			if (! obj.hasOwnProperty(nome)) continue;
 			let conversor = this.conversores[nome];
 			obj[nome] = conversor.analisar(obj[nome]);
 		}
 	}
 
-	definirConversores(conversores) {
+	definirConversores(conversores: Analisadores) {
 		this.conversores = conversores;
 	}
 
-	analisar(algo) {
+	analisar(algo: T) {
 		return this.analisarInto(algo, {});
 	}
 
-	abstract analisarInto(algo, obj): typeof obj;
+	abstract analisarInto(algo: T, obj: any): typeof obj;
 }

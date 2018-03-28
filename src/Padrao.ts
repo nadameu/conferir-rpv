@@ -2,24 +2,24 @@ export default class Padrao {
 	regularExpression: RegExp;
 	properties: string[];
 
-	constructor(re, ...props) {
+	constructor(re: RegExp, ...props: string[]) {
 		this.regularExpression = re;
 		this.properties = props;
 	}
 
-	match(texto) {
+	match(texto: string) {
 		const obj = {};
 		this.matchInto(texto, obj);
 		return obj;
 	}
 
-	matchInto(texto, obj) {
-		const changed = {};
+	matchInto(texto: string, obj: any) {
+		const changed: { [nome: string]: string } = {};
 		const match = texto.match(this.regularExpression);
 		if (match) {
 			const valores = match.slice(1);
 			this.properties.forEach((nome, indice) => {
-				let valor = valores[indice];
+				const valor = valores[indice];
 				changed[nome] = valor;
 			});
 			Object.assign(obj, changed);
