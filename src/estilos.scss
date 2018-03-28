@@ -1,0 +1,23 @@
+input:disabled {
+	background: #ccc;
+	color: #888;
+}
+.gm-digitar-rpv {
+	position: absolute;
+	top: 38px;
+	left: 10px;
+	display: grid;
+	grid-template-rows: 18px 21px;
+	grid-auto-flow: column;
+	grid-column-gap: 16px;
+}
+label.gm-digitar-rpv__label {
+	width: 80px;
+}
+.gm-digitar-rpv__input {
+	width: 80px;
+}
+.gm-digitar-rpv__input_error,
+input:focus.gm-digitar-rpv__input_error {
+	background: #f88;
+}
