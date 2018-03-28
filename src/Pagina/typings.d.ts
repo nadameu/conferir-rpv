@@ -1,0 +1,3 @@
+interface PaginaComAlterador {
+	adicionarAlteracoes(): void;
+}
