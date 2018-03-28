@@ -1,6 +1,12 @@
 import Pagina from './Pagina';
 
 export default class PaginaRedirecionamento extends Pagina {
+	constructor(doc: Document) {
+		super(doc);
+	}
+
+	adicionarAlteracoes() {}
+
 	get urlRedirecionamento() {
 		const match = this.doc.documentElement.innerHTML.match(
 			/window\.location = '([^']+)';/

@@ -1,1 +1,1 @@
-export { default } from './Pagina';
+export { default } from './PaginaFactory';

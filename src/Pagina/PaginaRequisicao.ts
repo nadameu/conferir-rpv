@@ -1,6 +1,11 @@
 import Pagina from './Pagina'
 
 export default class PaginaRequisicao extends Pagina {
+
+	constructor(doc: Document) {
+		super(doc);
+	}
+
 	get requisicao() {
 		if (! this._requisicao) {
 			this._requisicao = this.analisarDadosRequisicao();

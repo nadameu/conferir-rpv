@@ -2,6 +2,9 @@ import BotaoAcao from '../BotaoAcao';
 import Pagina from './Pagina';
 
 export default class PaginaListar extends Pagina {
+	constructor(doc: Document) {
+		super(doc);
+	}
 	get requisicoes() {
 		const linhas = Array.from(
 			this.doc.querySelectorAll(

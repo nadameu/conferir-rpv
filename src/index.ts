@@ -1,7 +1,7 @@
-import Pagina from './Pagina';
+import PaginaFactory from './Pagina/PaginaFactory';
 
 function main() {
-	const pagina = Pagina.analisar(document);
+	const pagina = PaginaFactory.analisar(document);
 	if (typeof pagina !== 'undefined') {
 		pagina.adicionarAlteracoes();
 	}
