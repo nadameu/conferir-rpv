@@ -20,10 +20,6 @@
 	"bugs": {
 		"url": "https://github.com/nadameu/preencher-rpv/issues"
 	},
-	"browserslist": [
-		"last 2 Chrome versions",
-		"Firefox 38"
-	],
 	"homepage": "https://github.com/nadameu/preencher-rpv#readme",
 	"devDependencies": {
 		"@babel/cli": "^7.0.0-beta.42",
