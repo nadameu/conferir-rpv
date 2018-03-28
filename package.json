@@ -16,7 +16,7 @@
 		"build:dev": "webpack --env.development --mode development",
 		"serve": "webpack-dev-server --env.development --mode development --open",
 		"start": "npm run build:dev && npm run serve",
-		"test": "jest",
+		"test": "jest --config .jestrc.json",
 		"type-check": "tsc"
 	},
 	"repository": {
@@ -33,21 +33,6 @@
 		"Firefox 38"
 	],
 	"homepage": "https://github.com/nadameu/digitar-rpv#readme",
-	"jest": {
-		"transform": {
-			"^.+\\.tsx?$": "ts-jest",
-			"^.+\\.jsx?$": "babel-jest"
-		},
-		"testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-		"moduleFileExtensions": [
-			"ts",
-			"tsx",
-			"js",
-			"jsx",
-			"json",
-			"node"
-		]
-	},
 	"devDependencies": {
 		"@babel/cli": "^7.0.0-beta.42",
 		"@babel/core": "^7.0.0-beta.42",
@@ -70,7 +55,6 @@
 		"sass-loader": "^6.0.7",
 		"style-loader": "^0.20.3",
 		"ts-jest": "^22.4.2",
-		"ts-loader": "^4.1.0",
 		"ts-node": "^5.0.1",
 		"typescript": "^2.8.1",
 		"userscript-meta": "^1.0.1",
