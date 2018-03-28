@@ -1,16 +1,8 @@
 {
-	"name": "digitar-rpv",
-	"version": "1.0.0",
-	"description": "Digitar ofício requisitório",
+	"name": "preencher-rpv",
+	"version": "21.0.0",
+	"description": "Auxilia a conferência de RPVs e precatórios.",
 	"main": "src/index.ts",
-	"userscript": {
-		"namespace": "http://nadameu.com.br/",
-		"include": [
-			"/^https:\\/\\/eproc\\.(jf(pr|rs|sc)|trf4)\\.jus\\.br\\/eproc(V2|2trf4)\\/controlador\\.php\\?acao=oficio_requisitorio_beneficiarioshonorarios_editar&/"
-		],
-		"grant": "none",
-		"run-at": "document-start"
-	},
 	"scripts": {
 		"build": "webpack --env.production --mode production",
 		"build:dev": "webpack --env.development --mode development",
@@ -21,18 +13,18 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/nadameu/digitar-rpv.git"
+		"url": "git+https://github.com/nadameu/preencher-rpv.git"
 	},
 	"author": "nadameu",
 	"license": "GPL-3.0",
 	"bugs": {
-		"url": "https://github.com/nadameu/digitar-rpv/issues"
+		"url": "https://github.com/nadameu/preencher-rpv/issues"
 	},
 	"browserslist": [
 		"last 2 Chrome versions",
 		"Firefox 38"
 	],
-	"homepage": "https://github.com/nadameu/digitar-rpv#readme",
+	"homepage": "https://github.com/nadameu/preencher-rpv#readme",
 	"devDependencies": {
 		"@babel/cli": "^7.0.0-beta.42",
 		"@babel/core": "^7.0.0-beta.42",

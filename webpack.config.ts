@@ -5,11 +5,12 @@ import UserscriptMeta from 'userscript-meta';
 import webpack from 'webpack';
 
 import pkg from './package.json';
+import metadata from './metadata';
 import GenerateMetaFilePlugin from './lib/GenerateMetaFilePlugin';
 
 const getMetadata = () => {
-	const { name, description, version, author, userscript } = pkg;
-	return Object.assign({ name, description, version, author }, userscript);
+	const { name, description, version, author } = pkg;
+	return Object.assign({ name, description, version, author }, metadata);
 };
 
 const defaultConfig: webpack.Configuration = {
