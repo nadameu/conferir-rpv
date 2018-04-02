@@ -292,7 +292,7 @@ export default class PaginaProcesso extends Pagina {
 		this.abrirJanela(url, `requisicao${numero}`, abrirEmJanela);
 	}
 
-	adicionarAlteracoes() {
+	async adicionarAlteracoes() {
 		const win = this.doc.defaultView;
 		win.addEventListener('pagehide', () => {
 			this.fecharJanelasDependentes();

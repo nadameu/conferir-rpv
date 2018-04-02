@@ -4,7 +4,7 @@ export default abstract class Pagina implements PaginaComAlteracoes {
 		this.doc = doc;
 	}
 
-	abstract adicionarAlteracoes(): void;
+	abstract adicionarAlteracoes(): Promise<void>;
 
 	validarElemento(
 		selector: string,

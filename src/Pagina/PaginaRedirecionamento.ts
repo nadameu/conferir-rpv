@@ -5,9 +5,9 @@ export default class PaginaRedirecionamento extends Pagina {
 		super(doc);
 	}
 
-	adicionarAlteracoes() {}
+	async adicionarAlteracoes() {}
 
-	get urlRedirecionamento() {
+	async getUrlRedirecionamento() {
 		const match = this.doc.documentElement.innerHTML.match(
 			/window\.location = '([^']+)';/
 		);

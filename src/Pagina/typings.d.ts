@@ -1,6 +1,6 @@
 interface PaginaComAlteracoes {
 	doc: Document;
-	adicionarAlteracoes(): void;
+	adicionarAlteracoes(): Promise<void>;
 	validarElemento(
 		selector: string,
 		condicao?: boolean,

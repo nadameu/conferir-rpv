@@ -30,7 +30,7 @@ export default class PaginaListar extends Pagina {
 	adicionarAlteracoes() {
 		const win = this.doc.defaultView;
 		const opener = win.opener;
-		this.testarJanelaProcessoAberta()
+		return this.testarJanelaProcessoAberta()
 			.then(() => this.getRequisicoes())
 			.then(requisicoes =>
 				requisicoes.forEach(requisicao => {
