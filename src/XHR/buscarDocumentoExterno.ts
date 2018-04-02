@@ -1,10 +1,12 @@
-export default function buscarDocumentoExterno(url) {
+export default function buscarDocumentoExterno(url: string): Promise<Document> {
 	return new Promise((resolve, reject) => {
-		const options = {
+		const options: GMXMLHttpRequestOptions = {
 			method: 'GET',
 			url: url,
-			responseType: 'document',
-			onload: obj => resolve(obj.responseXML),
+			onload: obj => {
+				const parser = new DOMParser();
+				resolve(parser.parseFromString(obj.responseText, 'text/html'));
+			},
 			onerror: reject,
 		};
 		GM_xmlhttpRequest(options);
