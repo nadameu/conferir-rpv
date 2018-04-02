@@ -1,4 +1,4 @@
-export default function css(obj) {
+export default function css(obj: CSSInstructions) {
 	return Array.from(Object.keys(obj))
 		.map(selector => {
 			const rules = obj[selector];
