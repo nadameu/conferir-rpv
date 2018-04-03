@@ -2,7 +2,14 @@ import PaginaListar from './PaginaListar';
 import PaginaProcesso from './PaginaProcesso';
 import PaginaRequisicao from './PaginaRequisicao';
 
-const classesPorAcao: { [acao: string]: PaginaComAlteracoesConstructor } = {
+type PaginaComAlteracoes = PaginaListar | PaginaProcesso | PaginaRequisicao;
+
+type PaginaConstrutor =
+	| typeof PaginaListar
+	| typeof PaginaProcesso
+	| typeof PaginaRequisicao;
+
+const classesPorAcao: { [acao: string]: PaginaConstrutor } = {
 	processo_selecionar: PaginaProcesso,
 	processo_precatorio_rpv: PaginaListar,
 	oficio_requisitorio_visualizar: PaginaRequisicao,
@@ -16,7 +23,7 @@ export default {
 			return paginas.get(doc);
 		}
 
-		let classe: PaginaComAlteracoesConstructor | null = null;
+		let classe: PaginaConstrutor | null = null;
 
 		const url = new URL(doc.location.href);
 		const acao = url.searchParams.get('acao');

@@ -1,33 +1,19 @@
-class RequisicaoListarBase {
-	constructor(
-		readonly linha: HTMLTableRowElement,
-		readonly numero: number,
-		readonly status: string
-	) {}
+interface RequisicaoListarBase {
+	readonly linha: HTMLTableRowElement;
+	readonly numero: number;
+	readonly status: string;
 }
 
-export class RequisicaoListarAntiga extends RequisicaoListarBase {
-	constructor(
-		linha: HTMLTableRowElement,
-		numero: number,
-		status: string,
-		readonly urlConsultarAntiga: string,
-		readonly urlEditarAntiga: string
-	) {
-		super(linha, numero, status);
-	}
+export interface RequisicaoListarAntiga extends RequisicaoListarBase {
+	readonly tipo: 'antiga';
+	readonly urlConsultarAntiga: string;
+	readonly urlEditarAntiga: string;
 }
 
-export class RequisicaoListarNova extends RequisicaoListarBase {
-	constructor(
-		linha: HTMLTableRowElement,
-		numero: number,
-		status: string,
-		readonly urlConsultar: string,
-		readonly urlEditar: string
-	) {
-		super(linha, numero, status);
-	}
+export interface RequisicaoListarNova extends RequisicaoListarBase {
+	readonly tipo: 'nova';
+	readonly urlConsultar: string;
+	readonly urlEditar: string;
 }
 
 export type RequisicaoListar = RequisicaoListarAntiga | RequisicaoListarNova;

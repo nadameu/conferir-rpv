@@ -1,10 +1,14 @@
-export default abstract class Pagina implements PaginaComAlteracoes {
+export default abstract class Pagina {
 	doc: Document;
 	constructor(doc: Document) {
 		this.doc = doc;
 	}
 
-	abstract adicionarAlteracoes(): Promise<void>;
+	abstract adicionarAlteracoes(): Promise<any>;
+
+	queryAll<T extends Element>(selector: string) {
+		return Array.from(this.doc.querySelectorAll<T>(selector));
+	}
 
 	validarElemento(
 		selector: string,
@@ -14,7 +18,7 @@ export default abstract class Pagina implements PaginaComAlteracoes {
 		classeUndefined = 'gm-resposta--indefinida'
 	) {
 		const elemento = this.doc.querySelector(selector);
-		if (! elemento) throw new Error(`Elemento não encontrado: ${selector}`);
+		if (!elemento) throw new Error(`Elemento não encontrado: ${selector}`);
 		elemento.classList.add('gm-resposta');
 		if (condicao === true) {
 			elemento.classList.add(classeTrue);

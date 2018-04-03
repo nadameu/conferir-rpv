@@ -3,3 +3,7 @@ type CSSInstructions = {
 		[property: string]: string;
 	};
 };
+
+type Fn<A, B> = {
+	(a: A): B;
+};
