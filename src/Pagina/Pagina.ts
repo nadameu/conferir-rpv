@@ -1,8 +1,5 @@
 export default abstract class Pagina {
-	doc: Document;
-	constructor(doc: Document) {
-		this.doc = doc;
-	}
+	constructor(private readonly doc: Document) {}
 
 	abstract adicionarAlteracoes(): Promise<any>;
 
