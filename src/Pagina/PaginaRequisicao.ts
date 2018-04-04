@@ -1,4 +1,21 @@
-import Pagina from './Pagina'
+import Acoes from '../Acoes';
+import AnalisadorLinhasTabela from '../AnalisadorLinhasTabela';
+import BotaoAcao from '../BotaoAcao';
+import { SALARIO_MINIMO } from '../Constantes';
+import {
+	ConversorAno,
+	ConversorBool,
+	ConversorData,
+	ConversorDataHora,
+	ConversorInt,
+	ConversorMesAno,
+	ConversorMoeda,
+	ConversorPorcentagem,
+	ConversorValores,
+} from '../Conversor';
+import Pagina from './Pagina';
+import Padrao from '../Padrao';
+import * as Utils from '../Utils';
 
 export default class PaginaRequisicao extends Pagina {
 
