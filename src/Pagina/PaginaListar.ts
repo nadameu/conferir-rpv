@@ -26,22 +26,24 @@ const obterCelulaLinha = (linha: HTMLTableRowElement, index: number) =>
 		promiseIndex(index)
 	);
 
-const obterElems = <T extends Element>(
-	linha: HTMLTableRowElement,
-	index: number,
-	selector: string
-) =>
-	obterCelulaLinha(linha, index)
-		.then(celula => celula.querySelectorAll<T>(selector))
-		.then(collection => Array.from(collection));
+const makeObterFromLinha = (linha: HTMLTableRowElement) => {
+	const obterCelula = (index: number) => obterCelulaLinha(linha, index);
 
-const obterNumero = (linha: HTMLTableRowElement, index: number) =>
-	obterTexto(linha, index).then(parseDecimalInt);
+	const obterElems = <T extends Element>(index: number, selector: string) =>
+		obterCelula(index)
+			.then(celula => celula.querySelectorAll<T>(selector))
+			.then(collection => Array.from(collection));
 
-const obterTexto = (linha: HTMLTableRowElement, index: number) =>
-	obterCelulaLinha(linha, index)
-		.then(promiseTexto)
-		.then(x => x.trim());
+	const obterNumero = (index: number) =>
+		obterTexto(index).then(parseDecimalInt);
+
+	const obterTexto = (index: number) =>
+		obterCelula(index)
+			.then(promiseTexto)
+			.then(x => x.trim());
+
+	return { obterElems, obterNumero, obterTexto };
+};
 
 const makeObterHref = (urls: URL[]) => (param: string, expected?: string) => {
 	const filtradas = urls.filter(
@@ -84,9 +86,10 @@ export default class PaginaListar extends Pagina {
 	}
 
 	async obterRequisicao(linha: HTMLTableRowElement): Promise<RequisicaoListar> {
-		const numero = await obterNumero(linha, 0);
-		const status = await obterTexto(linha, 1);
-		const links = await obterElems<HTMLAnchorElement>(linha, 2, 'a[href]');
+		const { obterNumero, obterTexto, obterElems } = makeObterFromLinha(linha);
+		const numero = await obterNumero(0);
+		const status = await obterTexto(1);
+		const links = await obterElems<HTMLAnchorElement>(2, 'a[href]');
 		const urls = links.map(link => new URL(link.href));
 		const obterHref = makeObterHref(urls);
 		const req: RequisicaoListar = {
