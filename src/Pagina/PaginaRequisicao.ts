@@ -16,6 +16,7 @@ import {
 } from '../Conversor';
 import Pagina from './Pagina';
 import Padrao from '../Padrao';
+import Requisicao from '../Requisicao';
 import * as Utils from '../Utils';
 
 export default class PaginaRequisicao extends Pagina {
@@ -23,6 +24,7 @@ export default class PaginaRequisicao extends Pagina {
 		super(doc);
 	}
 
+	private _requisicao;
 	get requisicao() {
 		if (!this._requisicao) {
 			this._requisicao = this.analisarDadosRequisicao();
@@ -30,7 +32,7 @@ export default class PaginaRequisicao extends Pagina {
 		return this._requisicao;
 	}
 
-	adicionarAlteracoes() {
+	async adicionarAlteracoes() {
 		const win = this.doc.defaultView;
 		win.addEventListener('message', this.onMensagemRecebida.bind(this));
 		// this.linkEditar.addEventListener('click', this.onLinkEditarClicado.bind(this));
@@ -133,7 +135,7 @@ export default class PaginaRequisicao extends Pagina {
 		requisicao.numero = Utils.parseDecimalInt(numero);
 		// requisicao.urlEditarAntiga = linkEditar.href;
 
-		const tabela = this.doc.querySelector(
+		const tabela = this.doc.querySelector<HTMLTableElement>(
 			'#divInfraAreaTabela > table:nth-child(2)'
 		);
 		tabela.classList.add('gm-requisicao__tabela');
@@ -246,13 +248,13 @@ export default class PaginaRequisicao extends Pagina {
 		analisador.definirConversores({
 			dataBase: ConversorMesAno,
 			valor: ConversorValores,
-			bloqueado: class extends Conversor {
-				static analisar(texto) {
+			bloqueado: <AnalisadorConversor<boolean>>{
+				analisar(texto) {
 					return texto === 'VALOR BLOQUEADO';
-				}
-				static converter(valor) {
+				},
+				converter(valor) {
 					return valor ? 'VALOR BLOQUEADO' : 'VALOR LIBERADO';
-				}
+				},
 			},
 			doencaGrave: ConversorBool,
 			renunciaValor: ConversorBool,
@@ -310,7 +312,7 @@ export default class PaginaRequisicao extends Pagina {
 		return this.enviarSolicitacao(janela, data);
 	}
 
-	exibirDocumentosProcesso(dadosProcesso) {
+	exibirDocumentosProcesso(dadosProcesso: DadosProcesso) {
 		const areaDocumentos = this.doc.querySelector('.gm-documentos');
 		this.exibirTitulo('Documentos do processo', areaDocumentos);
 		let tabela = [
@@ -326,26 +328,33 @@ export default class PaginaRequisicao extends Pagina {
 			'<tbody>',
 		].join('\n');
 		let css = 0;
-		const eventos = Array.concat(
-			dadosProcesso.calculos,
-			dadosProcesso.contratos,
-			dadosProcesso.honorarios,
-			dadosProcesso.sentencas
-		)
+		const eventos = ([] as DadosEvento[])
+			.concat(
+				dadosProcesso.calculos,
+				dadosProcesso.contratos,
+				dadosProcesso.honorarios,
+				dadosProcesso.sentencas
+			)
 			.sort((eventoA, eventoB) => eventoB.evento - eventoA.evento)
-			.reduce((map, evento) => {
-				if (map.has(evento.evento)) {
-					evento.documentos.forEach(documento => {
-						map.get(evento.evento).documentos.set(documento.ordem, documento);
+			.reduce(
+				(map, dadosEvento) => {
+					if (!map.has(dadosEvento.evento)) {
+						map.set(dadosEvento.evento, {
+							...dadosEvento,
+							documentos: new Map(),
+						});
+					}
+
+					const evento = map.get(dadosEvento.evento);
+
+					dadosEvento.documentos.forEach(({ nome, ordem }) => {
+						evento.documentos.set(ordem, { nome, ordem });
 					});
-				} else {
-					evento.documentos = new Map(
-						evento.documentos.map(documento => [documento.ordem, documento])
-					);
-					map.set(evento.evento, evento);
-				}
-				return map;
-			}, new Map());
+
+					return map;
+				},
+				new Map() as Map<number, Evento>
+			);
 		Array.from(eventos.values()).forEach(evento => {
 			tabela += [
 				`<tr class="${css++ % 2 === 0 ? 'infraTrClara' : 'infraTrEscura'}">`,
@@ -713,7 +722,7 @@ export default class PaginaRequisicao extends Pagina {
 		const ehTributario = requisicao.codigoAssunto.match(/^03/) !== null;
 		let codigoNaturezaCorreto = undefined;
 
-		const pagamentos = Array.concat(
+		const pagamentos = [].concat(
 			...['beneficiario', 'honorario'].map(tipo => {
 				const colecao = `${tipo}s`;
 				return requisicao[colecao].map((pagamento, ordinal) => {
