@@ -1,3 +1,4 @@
+import './PaginaProcesso.scss';
 import Acoes from '../Acoes';
 import { ConversorData, ConversorDataHora } from '../Conversor';
 import Pagina from './Pagina';
@@ -303,19 +304,6 @@ export default class PaginaProcesso extends Pagina {
 			'click',
 			this.onLinkListarClicado.bind(this)
 		);
-		const style = this.doc.createElement('style');
-		style.innerHTML = Utils.css({
-			'.gmEventoDestacado > td': {
-				background: '#f8eddb',
-				border: '0px solid #c0c0c0',
-				'border-width': '1px 0',
-			},
-			'.gmTextoDestacado': {
-				color: 'red',
-				'font-size': '1.2em',
-			},
-		});
-		this.doc.querySelector('head').appendChild(style);
 	}
 
 	adicionarBotao() {

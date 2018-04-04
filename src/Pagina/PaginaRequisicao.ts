@@ -1,3 +1,4 @@
+import './PaginaRequisicao.scss';
 import Acoes from '../Acoes';
 import AnalisadorLinhasTabela from '../AnalisadorLinhasTabela';
 import BotaoAcao from '../BotaoAcao';
@@ -31,69 +32,6 @@ export default class PaginaRequisicao extends Pagina {
 	}
 
 	adicionarAlteracoes() {
-		const style = this.doc.createElement('style');
-		style.innerHTML = Utils.css({
-			'table a': {
-				'font-size': '1em',
-			},
-			'.gm-requisicao__tabela tr::before': {
-				content: '\'\'',
-				'font-size': '1.2em',
-				'font-weight': 'bold',
-			},
-			'.gm-resposta': {},
-			'p.gm-resposta': {
-				'font-size': '1.2em',
-				margin: '1em 0 0',
-			},
-			'.gm-resposta--correta': {
-				color: 'hsl(120, 25%, 75%)',
-			},
-			'.gm-resposta--incorreta': {
-				color: 'hsl(0, 100%, 40%)',
-				'text-shadow': '0 2px 2px hsl(0, 75%, 60%)',
-			},
-			'.gm-resposta--indefinida': {
-				color: 'hsl(30, 100%, 40%)',
-				'text-shadow': '0 2px 3px hsl(30, 75%, 60%)',
-			},
-			'.gm-requisicao__tabela .gm-resposta--correta td, .gm-requisicao__tabela .gm-resposta--correta span': {
-				color: 'hsl(240, 10%, 65%)',
-			},
-			'.gm-requisicao__tabela .gm-resposta--correta::before': {
-				content: '\'✓\'',
-				color: 'hsl(120, 25%, 65%)',
-			},
-			'.gm-requisicao__tabela .gm-resposta--incorreta td, .gm-requisicao__tabela .gm-resposta--incorreta span': {
-				color: 'hsl(0, 100%, 40%)',
-			},
-			'.gm-requisicao__tabela .gm-resposta--incorreta::before': {
-				content: '\'✗\'',
-				color: 'hsl(0, 100%, 40%)',
-				'text-shadow': 'none',
-			},
-			'.gm-requisicao__tabela .gm-resposta--indefinida td, .gm-requisicao__tabela .gm-resposta--indefinida span': {
-				color: 'hsl(30, 100%, 40%)',
-			},
-			'.gm-requisicao__tabela .gm-resposta--indefinida::before': {
-				content: '\'?\'',
-				color: 'hsl(30, 100%, 40%)',
-				'text-shadow': 'none',
-			},
-			'p.gm-dados-adicionais': {
-				'margin-top': '0',
-				'margin-left': '2ex',
-			},
-			'.gm-botoes': {
-				margin: '4em 0',
-				display: 'flex',
-				'justify-content': 'space-around',
-			},
-			'table.gm-tabela-eventos td': {
-				padding: '0 0.5ex',
-			},
-		});
-		this.doc.querySelector('head').appendChild(style);
 		const win = this.doc.defaultView;
 		win.addEventListener('message', this.onMensagemRecebida.bind(this));
 		// this.linkEditar.addEventListener('click', this.onLinkEditarClicado.bind(this));
