@@ -20,6 +20,18 @@ export default abstract class Pagina {
 		return Promise.resolve(elemento);
 	}
 
+	queryTexto<T extends Element>(
+		selector: string,
+		context: NodeSelector = this.doc
+	) {
+		return this.query<T>(selector, context).then(elemento => {
+			const texto = elemento.textContent;
+			return texto
+				? Promise.resolve(texto)
+				: Promise.reject(`Elemento não possui texto: ${selector}.`);
+		});
+	}
+
 	validarElemento(
 		selector: string,
 		condicao?: boolean,
