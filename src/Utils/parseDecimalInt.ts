@@ -1,3 +1,3 @@
-export default function parseDecimalInt(texto: string): number {
+export default function parseDecimalInt(texto: string) {
 	return parseInt(texto, 10);
 }
