@@ -1,11 +1,15 @@
 import './PaginaProcesso.scss';
 import Acoes from '../Acoes';
+import BotaoAcao from '../BotaoAcao';
 import { ConversorData, ConversorDataHora } from '../Conversor';
 import Pagina from './Pagina';
+import { PaginaListar, PaginaRedirecionamento } from './index';
 import * as Utils from '../Utils';
+import * as XHR from '../XHR';
 
 export default class PaginaProcesso extends Pagina {
 	janelasDependentes = null;
+	urlEditarRequisicoes = null;
 
 	get assuntos() {
 		const tabela = this.doc.querySelector(
@@ -91,7 +95,7 @@ export default class PaginaProcesso extends Pagina {
 	}
 
 	get linkListar() {
-		return this.informacoesAdicionais.querySelector(
+		return this.informacoesAdicionais.querySelector<HTMLAnchorElement>(
 			'a[href^="controlador.php?acao=processo_precatorio_rpv&"]'
 		);
 	}
@@ -136,7 +140,12 @@ export default class PaginaProcesso extends Pagina {
 		const reTransito = /Trânsito em Julgado/;
 		const reTransitoComData = /Data: (\d\d\/\d\d\/\d\d\d\d)/;
 
-		const dadosTransito = {};
+		const dadosTransito: {
+			data?: Date;
+			dataDecurso?: Date;
+			dataEvento?: Date;
+			dataFechamento?: Date;
+		} = {};
 
 		const linhasEventos = Array.from(this.tabelaEventos.tBodies).reduce(
 			(arr, tbody) => arr.concat(Array.from(tbody.rows)),
@@ -260,7 +269,9 @@ export default class PaginaProcesso extends Pagina {
 	abrirDocumento(evento, documento) {
 		const celula = this.doc.getElementById(`tdEvento${evento}Doc${documento}`);
 		if (celula) {
-			const link = celula.querySelector('.infraLinkDocumento');
+			const link = celula.querySelector<HTMLAnchorElement>(
+				'.infraLinkDocumento'
+			);
 			if (link) link.click();
 		}
 	}
@@ -312,7 +323,7 @@ export default class PaginaProcesso extends Pagina {
 			evt.preventDefault();
 			evt.stopPropagation();
 			botao.textContent = 'Aguarde, carregando...';
-			XHR.buscarDocumento(this.linkListar)
+			XHR.buscarDocumento(this.linkListar.href)
 				.then(doc => {
 					const paginaListar = new PaginaListar(doc);
 					const requisicoesAntigas = paginaListar.requisicoes.filter(
@@ -380,14 +391,14 @@ export default class PaginaProcesso extends Pagina {
 	destacarDocumentos(propriedade, regularExpression) {
 		const linhasEventos = Array.from(this.tabelaEventos.tBodies).reduce(
 			(arr, tbody) => arr.concat(Array.from(tbody.rows)),
-			[]
+			[] as HTMLTableRowElement[]
 		);
 		const dadosEventos = [];
 		linhasEventos.forEach(linha => {
 			let linksDocumentos = [];
 			if (propriedade === 'tipo') {
 				linksDocumentos = Array.from(
-					linha.querySelectorAll('.infraLinkDocumento')
+					linha.querySelectorAll<HTMLAnchorElement>('.infraLinkDocumento')
 				).filter(link => link.textContent.match(regularExpression));
 			} else if (propriedade === 'evento') {
 				if (
