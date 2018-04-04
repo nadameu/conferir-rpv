@@ -4,16 +4,7 @@ import Mensagem from '../Mensagem';
 import Pagina from './Pagina';
 import { RequisicaoListar } from '../Requisicao/RequisicaoListar';
 import parseDecimalInt from '../Utils/parseDecimalInt';
-
-const erroParaArray = <T>(logar = false) => (erro: any) => {
-	if (logar) console.error(erro);
-	return [] as T[];
-};
-
-const descartarRejeicoes = <T>(promises: Promise<T>[], logar = false) =>
-	Promise.all(
-		promises.map(promise => promise.then(x => [x], erroParaArray<T>(logar)))
-	).then(xss => xss.flatten());
+import { lefts, rights } from '../Utils/promises';
 
 const promiseIndex = <T>(index: number) => (collection: {
 	length: number;
@@ -127,7 +118,13 @@ export default class PaginaListar extends Pagina {
 		const linhas = this.queryAll<HTMLTableRowElement>(
 			'#divInfraAreaTabela > table tr[class^="infraTr"]'
 		);
-		return descartarRejeicoes(linhas.map(this.obterRequisicao), true);
+		const requisicoes = linhas.map(this.obterRequisicao);
+		lefts(requisicoes).then(erros =>
+			erros.forEach(erro => {
+				console.error(erro);
+			})
+		);
+		return rights(requisicoes);
 	}
 
 	solicitarAberturaRequisicao(janela: Window, requisicao: RequisicaoListar) {
