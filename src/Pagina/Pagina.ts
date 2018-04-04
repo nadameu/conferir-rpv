@@ -3,8 +3,11 @@ export default abstract class Pagina {
 
 	abstract adicionarAlteracoes(): Promise<any>;
 
-	queryAll<T extends Element>(selector: string) {
-		return Array.from(this.doc.querySelectorAll<T>(selector));
+	queryAll<T extends Element>(
+		selector: string,
+		context: NodeSelector = this.doc
+	) {
+		return Array.from(context.querySelectorAll<T>(selector));
 	}
 
 	validarElemento(
