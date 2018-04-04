@@ -19,13 +19,12 @@ import Padrao from '../Padrao';
 import * as Utils from '../Utils';
 
 export default class PaginaRequisicao extends Pagina {
-
 	constructor(doc: Document) {
 		super(doc);
 	}
 
 	get requisicao() {
-		if (! this._requisicao) {
+		if (!this._requisicao) {
 			this._requisicao = this.analisarDadosRequisicao();
 		}
 		return this._requisicao;
@@ -359,7 +358,13 @@ export default class PaginaRequisicao extends Pagina {
 				.slice()
 				.sort((a, b) => a.ordem - b.ordem)
 				.forEach(documento => {
-					tabela += `<tr><td><a class="infraLinkDocumento" id="gm-documento-ev${evento.evento}-doc${documento.ordem}" data-evento="${evento.evento}" data-documento="${documento.ordem}" href="#">${documento.nome}</a></td></tr>`;
+					tabela += `<tr><td><a class="infraLinkDocumento" id="gm-documento-ev${
+						evento.evento
+					}-doc${documento.ordem}" data-evento="${
+						evento.evento
+					}" data-documento="${documento.ordem}" href="#">${
+						documento.nome
+					}</a></td></tr>`;
 				});
 			tabela += ['</tbody></table></td>', '</tr>'].join('\n');
 		});
@@ -447,9 +452,9 @@ export default class PaginaRequisicao extends Pagina {
 					'beforeend',
 					`<p class="gm-resposta gm-dados-adicionais">IRPF &mdash; Exercício Anterior &mdash; <span class="gm-resposta--indefinida">${ConversorInt.converter(
 						mesesAnterior
-					)} ${mesesAnterior > 1
-						? 'meses'
-						: 'mês'}</span> &mdash; <span class="gm-resposta--indefinida">${ConversorMoeda.converter(
+					)} ${
+						mesesAnterior > 1 ? 'meses' : 'mês'
+					}</span> &mdash; <span class="gm-resposta--indefinida">${ConversorMoeda.converter(
 						valorAnterior
 					)}</span></p>`
 				);
@@ -463,16 +468,18 @@ export default class PaginaRequisicao extends Pagina {
 				const anoCorrente =
 					beneficiario.anoCorrente === undefined
 						? ''
-						: `(<span class="gm-resposta--indefinida">${beneficiario.anoCorrente
-							? ConversorAno.converter(beneficiario.anoCorrente)
-							: ''}</span>)`;
+						: `(<span class="gm-resposta--indefinida">${
+								beneficiario.anoCorrente
+									? ConversorAno.converter(beneficiario.anoCorrente)
+									: ''
+						  }</span>)`;
 				areaTabela.insertAdjacentHTML(
 					'beforeend',
 					`<p class="gm-resposta gm-dados-adicionais">IRPF &mdash; Exercício Corrente ${anoCorrente} &mdash; <span class="gm-resposta--indefinida">${ConversorInt.converter(
 						mesesCorrente
-					)} ${mesesCorrente > 1
-						? 'meses'
-						: 'mês'}</span> &mdash; <span class="gm-resposta--indefinida">${ConversorMoeda.converter(
+					)} ${
+						mesesCorrente > 1 ? 'meses' : 'mês'
+					}</span> &mdash; <span class="gm-resposta--indefinida">${ConversorMoeda.converter(
 						valorCorrente
 					)}</span></p>`
 				);
@@ -533,8 +540,12 @@ export default class PaginaRequisicao extends Pagina {
 				areaTabela.insertAdjacentHTML(
 					'beforeend',
 					[
-						`<p class="gm-resposta gm-resposta--indefinida">${honorario.nome}</p>`,
-						`<p class="gm-resposta gm-dados-adicionais"><span class="gm-resposta--indefinida">${honorario.tipoHonorario}</span> &mdash; <span class="gm-resposta--indefinida">${ConversorMoeda.converter(
+						`<p class="gm-resposta gm-resposta--indefinida">${
+							honorario.nome
+						}</p>`,
+						`<p class="gm-resposta gm-dados-adicionais"><span class="gm-resposta--indefinida">${
+							honorario.tipoHonorario
+						}</span> &mdash; <span class="gm-resposta--indefinida">${ConversorMoeda.converter(
 							honorario.valor.principal
 						)}</span> + <span class="gm-resposta--indefinida">${ConversorMoeda.converter(
 							honorario.valor.juros
@@ -619,7 +630,7 @@ export default class PaginaRequisicao extends Pagina {
 			dataFechamento === dataTransitoRequisicao;
 		this.validarElemento(
 			'.gm-requisicao__dados__dataTransito',
-			isTrue || isUndefined && undefined
+			isTrue || (isUndefined && undefined)
 		);
 
 		// Conferir se requerido é réu na ação
@@ -757,17 +768,17 @@ export default class PaginaRequisicao extends Pagina {
 			// Destacar campos que requerem atenção
 			this.validarElemento(
 				`.${prefixo}__bloqueado`,
-				tipo === 'honorario' &&
-					pagamento.tipoHonorario === 'Devolução à Seção Judiciária' ||
+				(tipo === 'honorario' &&
+					pagamento.tipoHonorario === 'Devolução à Seção Judiciária') ||
 					undefined
 			);
 			if ('tipoJuros' in pagamento) {
 				this.validarElemento(
 					`.${prefixo}__tipoJuros`,
-					ehPrevidenciario && pagamento.tipoJuros === 'Poupança' ||
-						tipo === 'honorario' &&
+					(ehPrevidenciario && pagamento.tipoJuros === 'Poupança') ||
+						(tipo === 'honorario' &&
 							pagamento.tipoHonorario === 'Devolução à Seção Judiciária' &&
-							pagamento.tipoJuros === 'Não incidem' ||
+							pagamento.tipoJuros === 'Não incidem') ||
 						undefined
 				);
 			}
@@ -796,8 +807,8 @@ export default class PaginaRequisicao extends Pagina {
 				case '21':
 					codigoNaturezaCorreto =
 						ehTributario ||
-						tipo === 'honorario' &&
-							pagamento.tipoHonorario === 'Devolução à Seção Judiciária' ||
+						(tipo === 'honorario' &&
+							pagamento.tipoHonorario === 'Devolução à Seção Judiciária') ||
 						undefined;
 					break;
 			}
@@ -839,7 +850,7 @@ export default class PaginaRequisicao extends Pagina {
 						`.${prefixo}__renunciaValor`,
 						pagamento.renunciaValor === ultrapassaLimite
 					);
-					this.validarElemento(`.${prefixo}__especie`, ! ultrapassaLimite);
+					this.validarElemento(`.${prefixo}__especie`, !ultrapassaLimite);
 				} else {
 					this.validarElemento(
 						`.${prefixo}__especie`,
@@ -885,7 +896,7 @@ export default class PaginaRequisicao extends Pagina {
 							`.${prefixo}__renunciaValor`,
 							pagamento.renunciaValor === ultrapassaLimite
 						);
-						this.validarElemento(`.${prefixo}__especie`, ! ultrapassaLimite);
+						this.validarElemento(`.${prefixo}__especie`, !ultrapassaLimite);
 					} else {
 						this.validarElemento(
 							`.${prefixo}__especie`,
@@ -899,7 +910,7 @@ export default class PaginaRequisicao extends Pagina {
 							`.${prefixo}__renunciaValor`,
 							pagamento.renunciaValor === ultrapassaLimite
 						);
-						this.validarElemento(`.${prefixo}__especie`, ! ultrapassaLimite);
+						this.validarElemento(`.${prefixo}__especie`, !ultrapassaLimite);
 					} else {
 						this.validarElemento(
 							`.${prefixo}__especie`,
@@ -911,4 +922,3 @@ export default class PaginaRequisicao extends Pagina {
 		});
 	}
 }
-

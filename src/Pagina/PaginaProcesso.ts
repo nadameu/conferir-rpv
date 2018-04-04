@@ -251,7 +251,7 @@ export default class PaginaProcesso extends Pagina {
 		return dadosTransito;
 	}
 
-	constructor(doc:Document) {
+	constructor(doc: Document) {
 		super(doc);
 		this.janelasDependentes = new Map();
 		this.urlEditarRequisicoes = new Map();
