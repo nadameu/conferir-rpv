@@ -1,15 +1,16 @@
-import Analisador from './Analisador';
 import Padrao from './Padrao';
 
-export default class AnalisadorLinhasTabela extends Analisador<
-	HTMLTableElement
-> {
-	padroes: Padrao[];
+export default class AnalisadorLinhasTabela {
+	private conversores: Analisadores = {};
+	private readonly padroes: Padrao[];
 	prefixo?: string;
 
 	constructor(...padroes: Padrao[]) {
-		super();
 		this.padroes = padroes;
+	}
+
+	analisar(algo: HTMLTableElement) {
+		return this.analisarInto(algo, {});
 	}
 
 	analisarInto(tabela: HTMLTableElement, obj: any) {
@@ -32,5 +33,17 @@ export default class AnalisadorLinhasTabela extends Analisador<
 		this.aplicarConversores(changed);
 		Object.assign(obj, changed);
 		return changed;
+	}
+
+	private aplicarConversores(obj: { [nome: string]: string }) {
+		for (let nome in this.conversores) {
+			if (!obj.hasOwnProperty(nome)) continue;
+			let conversor = this.conversores[nome];
+			obj[nome] = conversor.analisar(obj[nome]);
+		}
+	}
+
+	definirConversores(conversores: Analisadores) {
+		this.conversores = conversores;
 	}
 }
