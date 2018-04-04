@@ -10,6 +10,16 @@ export default abstract class Pagina {
 		return Array.from(context.querySelectorAll<T>(selector));
 	}
 
+	query<T extends Element>(selector: string, context: NodeSelector = this.doc) {
+		const elemento = context.querySelector<T>(selector);
+		if (elemento === null) {
+			return Promise.reject(
+				new Error(`Elemento não encontrado: "${selector}".`)
+			);
+		}
+		return Promise.resolve(elemento);
+	}
+
 	validarElemento(
 		selector: string,
 		condicao?: boolean,
