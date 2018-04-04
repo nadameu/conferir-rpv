@@ -6,6 +6,7 @@ import Pagina from './Pagina';
 import { PaginaListar, PaginaRedirecionamento } from './index';
 import * as Utils from '../Utils';
 import * as XHR from '../XHR';
+import { RequisicaoListarAntiga, RequisicaoListarNova } from '../Requisicao';
 
 export default class PaginaProcesso extends Pagina {
 	janelasDependentes = null;
@@ -322,32 +323,34 @@ export default class PaginaProcesso extends Pagina {
 		const botao = BotaoAcao.criar(textoBotao, evt => {
 			evt.preventDefault();
 			evt.stopPropagation();
-			botao.textContent = 'Aguarde, carregando...';
-			XHR.buscarDocumento(this.linkListar.href)
-				.then(doc => {
-					const paginaListar = new PaginaListar(doc);
-					const requisicoesAntigas = paginaListar.requisicoes.filter(
-						requisicao =>
+			Promise.resolve()
+				.then(() => {
+					botao.textContent = 'Aguarde, carregando...';
+				})
+				.then(async () => {
+					const docListar = await XHR.buscarDocumento(this.linkListar.href);
+					const paginaListar = new PaginaListar(docListar);
+					const listaRequisicoes = await paginaListar.obterRequisicoes();
+					const requisicoesAntigas = listaRequisicoes.filter(
+						(requisicao): requisicao is RequisicaoListarAntiga =>
 							requisicao.tipo === 'antiga' && requisicao.status === 'Digitada'
 					);
 					if (requisicoesAntigas.length === 1) {
-						const all = requisicoesAntigas.map(requisicao =>
-							XHR.buscarDocumentoExterno(requisicao.urlConsultarAntiga).then(
-								doc => {
-									const paginaRedirecionamento = new PaginaRedirecionamento(
-										doc
-									);
-									this.abrirJanelaRequisicao(
-										paginaRedirecionamento.urlRedirecionamento,
-										requisicao.numero
-									);
-								}
-							)
+						const requisicao = requisicoesAntigas[0];
+						const docRedirecionamento = await XHR.buscarDocumentoExterno(
+							requisicao.urlConsultarAntiga
 						);
-						return Promise.all(all);
+						const paginaRedirecionamento = new PaginaRedirecionamento(
+							docRedirecionamento
+						);
+						const urlRedirecionamento = await paginaRedirecionamento.getUrlRedirecionamento();
+						return void this.abrirJanelaRequisicao(
+							urlRedirecionamento,
+							requisicao.numero
+						);
 					}
-					const requisicoes = paginaListar.requisicoes.filter(
-						requisicao =>
+					const requisicoes = listaRequisicoes.filter(
+						(requisicao): requisicao is RequisicaoListarNova =>
 							requisicao.tipo === 'nova' && requisicao.status === 'Finalizada'
 					);
 					if (requisicoes.length === 1) {
@@ -363,20 +366,24 @@ export default class PaginaProcesso extends Pagina {
 					}
 					this.abrirJanelaListar();
 				})
-				.then(() => (botao.textContent = textoBotao));
+				.then(() => {
+					botao.textContent = textoBotao;
+				})
+				.catch(err => {
+					console.error(err);
+				});
 		});
+
+		const frag = this.doc.createDocumentFragment();
+		frag.appendChild(this.doc.createElement('br'));
+		frag.appendChild(botao);
+		frag.appendChild(this.doc.createElement('br'));
+
 		this.informacoesAdicionais.parentElement.insertBefore(
-			botao,
+			frag,
 			this.informacoesAdicionais.nextSibling
 		);
-		this.informacoesAdicionais.parentElement.insertBefore(
-			this.doc.createElement('br'),
-			botao
-		);
-		this.informacoesAdicionais.parentElement.insertBefore(
-			this.doc.createElement('br'),
-			botao.nextSibling
-		);
+
 		const ultimoEvento = Utils.parseDecimalInt(
 			this.tabelaEventos.tBodies[0].rows[0].cells[1].textContent.trim()
 		);

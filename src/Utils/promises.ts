@@ -6,6 +6,8 @@ export function lefts(promises: Iterable<Promise<any>>) {
 
 export function rights<T>(promises: Iterable<Promise<T>>) {
 	return Promise.all(
-		Array.from(promises).map(promise => promise.then(valor => [valor], _ => []))
+		Array.from(promises).map(promise =>
+			promise.then(valor => [valor], _ => [] as T[])
+		)
 	).then(xss => xss.flatten());
 }
