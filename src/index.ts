@@ -1,8 +1,7 @@
-import PaginaFactory from './Pagina/PaginaFactory';
+import { analisar } from './Pagina/PaginaFactory';
 
 async function main() {
-	const pagina = PaginaFactory.analisar(document);
-	if (typeof pagina === 'undefined') throw new Error('Página desconhecida.');
+	const pagina = await analisar(document);
 	return pagina.adicionarAlteracoes();
 }
 

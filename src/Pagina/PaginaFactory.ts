@@ -17,25 +17,24 @@ const classesPorAcao: { [acao: string]: PaginaConstrutor } = {
 
 const paginas: WeakMap<Document, PaginaComAlteracoes> = new WeakMap();
 
-export default {
-	analisar(doc: Document) {
-		if (paginas.has(doc)) {
-			return paginas.get(doc);
-		}
+export function analisar(doc: Document) {
+	if (paginas.has(doc)) {
+		return Promise.resolve(<PaginaComAlteracoes>paginas.get(doc));
+	}
 
-		let classe: PaginaConstrutor | null = null;
+	let classe: PaginaConstrutor | null = null;
 
-		const url = new URL(doc.location.href);
-		const acao = url.searchParams.get('acao');
+	const url = new URL(doc.location.href);
+	const acao = url.searchParams.get('acao');
 
-		if (doc.domain.match(/^eproc\.(trf4|jf(pr|rs|sc))\.jus\.br$/)) {
-			if (acao && acao in classesPorAcao) classe = classesPorAcao[acao];
-		}
+	if (doc.domain.match(/^eproc\.(trf4|jf(pr|rs|sc))\.jus\.br$/)) {
+		if (acao && acao in classesPorAcao) classe = classesPorAcao[acao];
+	}
 
-		if (classe !== null) {
-			const pagina = new classe(doc);
-			paginas.set(doc, pagina);
-			return pagina;
-		}
-	},
-};
+	if (classe !== null) {
+		const pagina = new classe(doc);
+		paginas.set(doc, pagina);
+		return Promise.resolve(pagina);
+	}
+	return Promise.reject(new Error(`Página desconhecida: ${doc.location.href}`));
+}
