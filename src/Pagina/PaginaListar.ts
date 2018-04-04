@@ -147,10 +147,7 @@ export default class PaginaListar extends Pagina {
 		}
 
 		const demorouDemais = new Promise<never>((_, rej) => {
-			setTimeout(
-				() => rej(new Error('Janela do processo não respondeu.')),
-				3000
-			);
+			setTimeout(rej, 3000, new Error('Janela do processo não respondeu.'));
 		});
 
 		const aguardarMensagem = new Promise<boolean>((res, rej) => {
