@@ -17,7 +17,7 @@ export default class PaginaProcesso extends Pagina {
 			'table[summary="Assuntos"]'
 		) as HTMLTableElement;
 		return Array.from(tabela.rows)
-			.filter((linha, i) => i > 0)
+			.filter((_, i) => i > 0)
 			.map(linha => linha.cells[0])
 			.map(celula => celula.textContent);
 	}
