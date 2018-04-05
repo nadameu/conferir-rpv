@@ -1,3 +1,5 @@
+import Maybe from '../Maybe';
+
 export default abstract class Pagina {
 	constructor(protected readonly doc: Document) {}
 
@@ -18,6 +20,13 @@ export default abstract class Pagina {
 			);
 		}
 		return Promise.resolve(elemento);
+	}
+
+	queryMaybe<T extends Element>(
+		selector: string,
+		context: NodeSelector = this.doc
+	) {
+		return Maybe.fromNullable(context.querySelector<T>(selector));
 	}
 
 	queryTexto<T extends Element>(
