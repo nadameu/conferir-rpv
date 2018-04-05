@@ -278,41 +278,43 @@ export default class PaginaProcesso extends Pagina {
 		super(doc);
 	}
 
-	abrirDocumento(evento, documento) {
-		const celula = this.doc.getElementById(`tdEvento${evento}Doc${documento}`);
-		if (celula) {
-			const link = celula.querySelector<HTMLAnchorElement>(
-				'.infraLinkDocumento'
-			);
-			if (link) link.click();
-		}
+	async abrirDocumento(evento: number, documento: number) {
+		const celula = await this.query<HTMLTableCellElement>(
+			`#tdEvento${evento}Doc${documento}`
+		);
+		const link = await this.query<HTMLAnchorElement>(
+			'.infraLinkDocumento',
+			celula
+		);
+		link.click();
 	}
 
-	abrirJanela(url, nome, abrirEmJanela = false) {
-		if (this.janelasDependentes.has(nome)) {
-			this.fecharJanela(nome);
-		}
-		let features = '';
-		if (abrirEmJanela) {
-			features = 'menubar,toolbar,location,personalbar,status,scrollbars';
-		}
+	abrirJanela(url: string, nome: string, abrirEmJanela = false) {
+		this.fecharJanela(nome);
+		const features = abrirEmJanela
+			? 'menubar,toolbar,location,personalbar,status,scrollbars'
+			: '';
 		const win = window.open(url, nome, features);
-		this.janelasDependentes.set(nome, win);
+		if (win) this.janelasDependentes.set(nome, win);
 	}
 
-	abrirJanelaEditarRequisicao(url, numero, abrirEmJanela = false) {
+	abrirJanelaEditarRequisicao(
+		url: string,
+		numero: string,
+		abrirEmJanela = false
+	) {
 		this.abrirJanela(url, `editar-requisicao${numero}`, abrirEmJanela);
 	}
 
-	abrirJanelaListar(abrirEmJanela = false) {
+	async abrirJanelaListar(abrirEmJanela = false) {
 		this.abrirJanela(
-			this.linkListar.href,
-			`listarRequisicoes${this.numproc}`,
+			(await this.obterLinkListar()).href,
+			`listarRequisicoes${await this.obterNumproc()}`,
 			abrirEmJanela
 		);
 	}
 
-	abrirJanelaRequisicao(url, numero, abrirEmJanela = false) {
+	abrirJanelaRequisicao(url: string, numero: number, abrirEmJanela = false) {
 		this.abrirJanela(url, `requisicao${numero}`, abrirEmJanela);
 	}
 
@@ -323,7 +325,7 @@ export default class PaginaProcesso extends Pagina {
 		});
 		win.addEventListener('message', this.onMensagemRecebida.bind(this));
 		this.adicionarBotao();
-		this.linkListar.addEventListener(
+		(await this.obterLinkListar()).addEventListener(
 			'click',
 			this.onLinkListarClicado.bind(this)
 		);
@@ -541,9 +543,11 @@ export default class PaginaProcesso extends Pagina {
 		this.enviarSolicitacao(janela, origem, data);
 	}
 
-	fecharJanela(nome) {
+	fecharJanela(nome: string) {
 		const win = this.janelasDependentes.get(nome);
-		this.fecharObjetoJanela(win);
+		if (win) {
+			this.fecharObjetoJanela(win);
+		}
 		this.janelasDependentes.delete(nome);
 	}
 
@@ -570,7 +574,7 @@ export default class PaginaProcesso extends Pagina {
 		this.fecharJanela(`requisicao${numero}`);
 	}
 
-	fecharObjetoJanela(win) {
+	fecharObjetoJanela(win: Window) {
 		try {
 			if (win && !win.closed) {
 				win.close();
