@@ -20,8 +20,9 @@ export default class PaginaProcesso extends Pagina {
 		);
 		return Array.from(tabela.rows)
 			.filter((_, i) => i > 0)
-			.map(linha => linha.cells[0])
-			.map(celula => celula.textContent);
+			.flatMap(linha =>
+				maybe(Utils.safePipe(linha.cells[0], c => c.textContent))
+			);
 	}
 
 	obterAutores() {
@@ -29,17 +30,18 @@ export default class PaginaProcesso extends Pagina {
 		const autores = links.map(async link => {
 			const nome = await promiseText(link);
 			const celula = await promiseParent<HTMLTableCellElement>(link, 'td');
-			const cpfCnpj = await this.queryTexto(
+			const cpfCnpj = (await this.queryTexto(
 				'span[id^="spnCpfParteAutor"]'
-			).then(texto => texto.replace(/\D/g, ''));
-			const oabAdvogados = this.queryAll('a', celula).filter(oab =>
-				(texto => texto && texto.match(/ADVOGADO/))(
-					oab.getAttribute('onmouseover')
-				)
+			)).replace(/\D/g, '');
+			const oabAdvogados = this.queryAll<HTMLAnchorElement>('a', celula).filter(
+				oab =>
+					Utils.safePipe(oab.getAttribute('onmouseover'), texto =>
+						texto.match(/ADVOGADO/)
+					)
 			);
-			const advogados = oabAdvogados
-				.flatMap(oab => maybe(oab.previousElementSibling))
-				.flatMap(el => maybe(el.textContent));
+			const advogados = oabAdvogados.flatMap(oab =>
+				maybe(Utils.safePipe(oab.previousElementSibling, el => el.textContent))
+			);
 			return {
 				nome,
 				cpfCnpj,
@@ -439,38 +441,32 @@ export default class PaginaProcesso extends Pagina {
 			}, []);
 	}
 
-	destacarDocumentosPorEvento(regularExpression) {
+	destacarDocumentosPorEvento(regularExpression: RegExp) {
 		return this.destacarDocumentos(linha => {
 			return [linha]
-				.filter(linha => {
-					const celulaDescricao = linha.querySelector<HTMLTableCellElement>(
-						'td.infraEventoDescricao'
-					);
-					const texto = celulaDescricao && celulaDescricao.textContent;
-					return texto && texto.trim().match(regularExpression);
-				})
+				.filter(linha =>
+					Utils.safePipe(
+						linha.querySelector<HTMLTableCellElement>(
+							'td.infraEventoDescricao'
+						),
+						c => c.textContent,
+						t => regularExpression.test(t.trim())
+					)
+				)
 				.flatMap(linha => this.queryAll('.infraLinkDocumento', linha));
 		});
 	}
 
-	destacarDocumentosPorMemo(regularExpression) {
+	destacarDocumentosPorMemo(regularExpression: RegExp) {
 		return this.destacarDocumentos(linha => {
-			let memos = this.queryAll('.infraTextoTooltip', linha).filter(
-				memo => memo.textContent && memo.textContent.match(regularExpression)
+			let memos = this.queryAll('.infraTextoTooltip', linha).filter(memo =>
+				Utils.safePipe(memo.textContent, texto => regularExpression.test(texto))
 			);
 			return memos
-				.map(memo => {
-					let celulaDocumento = memo.parentElement;
-					while (celulaDocumento && !celulaDocumento.matches('td')) {
-						celulaDocumento = celulaDocumento.parentElement;
-					}
-					return <HTMLTableCellElement>celulaDocumento;
-				})
-				.filter((celula): celula is HTMLTableCellElement => celula !== null)
-				.map(celula =>
-					celula.querySelector<HTMLAnchorElement>('.infraLinkDocumento')
-				)
-				.filter((link): link is HTMLAnchorElement => link !== null);
+				.flatMap(maybeParent<HTMLTableCellElement>('td'))
+				.flatMap(celula =>
+					maybe(celula.querySelector<HTMLAnchorElement>('.infraLinkDocumento'))
+				);
 		});
 	}
 
@@ -480,7 +476,10 @@ export default class PaginaProcesso extends Pagina {
 		);
 		return this.destacarDocumentos(linha =>
 			this.queryAll<HTMLAnchorElement>('.infraLinkDocumento', linha).filter(
-				link => link.textContent && link.textContent.match(regularExpression)
+				link =>
+					Utils.safePipe(link.textContent, texto =>
+						regularExpression.test(texto)
+					)
 			)
 		);
 	}
@@ -651,8 +650,18 @@ export default class PaginaProcesso extends Pagina {
 	}
 }
 
-function maybe<T>(obj: T | null | undefined) {
-	return [obj].filter((x): x is T => Boolean(x));
+function maybe<T>(obj: T): NonNullable<T>[] {
+	return [obj].filter((x): x is NonNullable<T> => Boolean(x));
+}
+
+function maybeParent<T extends HTMLElement = HTMLElement>(selector: string) {
+	return (element: Node) => {
+		let parent = element.parentElement;
+		while (parent !== null && !parent.matches(selector)) {
+			parent = parent.parentElement;
+		}
+		return parent === null ? [] : [<T>parent];
+	};
 }
 
 function promiseParent<T extends HTMLElement = HTMLElement>(
