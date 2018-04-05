@@ -9,6 +9,12 @@ interface EventoI {
 	evento: number;
 }
 
+interface DadosAutor {
+	nome: string;
+	cpfCnpj: string;
+	advogados: string[];
+}
+
 interface DadosEvento extends EventoI {
 	documentos: Documento[];
 }

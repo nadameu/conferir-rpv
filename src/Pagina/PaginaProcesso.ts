@@ -2,6 +2,7 @@ import './PaginaProcesso.scss';
 import Acoes from '../Acoes';
 import BotaoAcao from '../BotaoAcao';
 import { ConversorData, ConversorDataHora } from '../Conversor';
+import { Maybe, just, nothing } from '../Maybe';
 import Pagina from './Pagina';
 import { PaginaListar, PaginaRedirecionamento } from './index';
 import * as Utils from '../Utils';
@@ -13,47 +14,59 @@ export default class PaginaProcesso extends Pagina {
 	private fecharAposPreparar = new Set();
 	private janelasDependentes: Map<string, Window> = new Map();
 	urlEditarRequisicoes: Map<number, string> = new Map();
+	private requisicoesAPreparar: Set<number> = new Set();
 
-	async obterAssuntos() {
-		const tabela = await this.query<HTMLTableElement>(
-			'table[summary="Assuntos"]'
+	obterAssuntos() {
+		return Maybe.fromArray(
+			this.queryAll<HTMLTableElement>('table[summary="Assuntos"]')
+		).map(tabela =>
+			Array.from(tabela.rows)
+				.filter((_, i) => i > 0)
+				.flatMap(linha =>
+					Maybe.fromNullable(linha.cells[0])
+						.chainNullable(c => c.textContent)
+						.toArray()
+				)
 		);
-		return Array.from(tabela.rows)
-			.filter((_, i) => i > 0)
-			.flatMap(linha =>
-				maybe(Utils.safePipe(linha.cells[0], c => c.textContent))
-			);
 	}
 
 	obterAutores() {
-		const links = this.queryAll<HTMLAnchorElement>('a[data-parte="AUTOR"]');
-		const autores = links.map(async link => {
-			const nome = await promiseText(link);
-			const celula = await promiseParent<HTMLTableCellElement>(link, 'td');
-			const cpfCnpj = (await this.queryTexto(
-				'span[id^="spnCpfParteAutor"]'
-			)).replace(/\D/g, '');
-			const oabAdvogados = this.queryAll<HTMLAnchorElement>('a', celula).filter(
-				oab =>
-					Utils.safePipe(oab.getAttribute('onmouseover'), texto =>
-						texto.match(/ADVOGADO/)
-					)
-			);
-			const advogados = oabAdvogados.flatMap(oab =>
-				maybe(Utils.safePipe(oab.previousElementSibling, el => el.textContent))
-			);
-			return {
-				nome,
-				cpfCnpj,
-				advogados,
-			};
-		});
-		lefts(autores).then(erros =>
-			erros.forEach(erro => {
-				console.error(erro);
-			})
+		return this.queryAll<HTMLAnchorElement>('a[data-parte="AUTOR"]').flatMap(
+			link => {
+				const maybeNome = maybeText(link);
+				const maybeCelula = maybeParent<HTMLTableCellElement>('td', link);
+				const maybeCpfCnpj = Maybe.fromArray(
+					this.queryAll<HTMLSpanElement>('span[id^="spnCpfParteAutor"]')
+				)
+					.chainNullable(c => c.textContent)
+					.map(t => t.replace(/\D/g, ''));
+
+				return Maybe.sequence([maybeNome, maybeCelula, maybeCpfCnpj])
+					.map(([nome, celula, cpfCnpj]) => {
+						const oabAdvogados = this.queryAll<HTMLAnchorElement>(
+							'a',
+							celula
+						).filter(oab =>
+							Maybe.fromNullable(oab.getAttribute('onmouseover')).maybe(
+								false,
+								texto => /ADVOGADO/.test(texto)
+							)
+						);
+						const advogados = oabAdvogados.flatMap(oab =>
+							Maybe.fromNullable(oab.previousElementSibling)
+								.chainNullable(el => el.textContent)
+								.toArray()
+						);
+						const dadosAutor: DadosAutor = {
+							nome,
+							cpfCnpj,
+							advogados,
+						};
+						return dadosAutor;
+					})
+					.toArray();
+			}
 		);
-		return rights(autores);
 	}
 
 	async obterAutuacao() {
@@ -69,7 +82,7 @@ export default class PaginaProcesso extends Pagina {
 		if (contratos.length > 0) return contratos;
 		const outros = this.destacarDocumentosPorMemo(/contrato|honor/i);
 		const procuracoes = this.destacarDocumentosPorTipo('PROC');
-		return [].concat(outros, procuracoes);
+		return (<DadosEvento[]>[]).concat(outros, procuracoes);
 	}
 
 	get honorarios() {
@@ -80,8 +93,8 @@ export default class PaginaProcesso extends Pagina {
 		return honorarios;
 	}
 
-	get informacoesAdicionais() {
-		return this.doc.getElementById('fldInformacoesAdicionais');
+	obterInformacoesAdicionais() {
+		return this.query('#fldInformacoesAdicionais');
 	}
 
 	get justicaGratuita() {
@@ -90,30 +103,23 @@ export default class PaginaProcesso extends Pagina {
 		return '???';
 	}
 
-	get linkListar() {
-		return this.informacoesAdicionais.querySelector<HTMLAnchorElement>(
-			'a[href^="controlador.php?acao=processo_precatorio_rpv&"]'
+	async obterLinkListar() {
+		return this.query<HTMLAnchorElement>(
+			'a[href^="controlador.php?acao=processo_precatorio_rpv&"]',
+			await this.obterInformacoesAdicionais()
 		);
 	}
 
-	get magistrado() {
-		return this.doc.getElementById('txtMagistrado').textContent;
+	obterMagistrado() {
+		return this.queryTexto('#txtMagistrado');
 	}
 
-	get numproc() {
-		return this.numprocf.replace(/\D/g, '');
+	async obterNumproc() {
+		return (await this.obterNumprocf()).replace(/\D/g, '');
 	}
 
-	get numprocf() {
-		return this.doc.getElementById('txtNumProcesso').textContent;
-	}
-
-	private _requisicoesAPreparar;
-	get requisicoesAPreparar() {
-		if (!this._requisicoesAPreparar) {
-			this._requisicoesAPreparar = new Set();
-		}
-		return this._requisicoesAPreparar;
+	obterNumprocf() {
+		return this.queryTexto('#txtNumProcesso');
 	}
 
 	get reus() {
@@ -143,23 +149,35 @@ export default class PaginaProcesso extends Pagina {
 			dataFechamento?: Date;
 		} = {};
 
-		const linhasEventos = Array.from(this.tabelaEventos.tBodies).reduce(
-			(arr, tbody) => arr.concat(Array.from(tbody.rows)),
-			[]
-		);
+		const linhasEventos = Array.from(this.tabelaEventos.tBodies)
+			.map(tbody => Array.from(tbody.rows))
+			.flatten();
 		const eventosTransito = linhasEventos.filter(linha =>
-			linha.cells[3].textContent.match(reTransito)
+			Utils.safePipe(
+				linha.cells[3],
+				c => c.textContent,
+				t => reTransito.test(t)
+			)
 		);
 		const eventosTransitoComData = eventosTransito.filter(linha =>
-			linha.cells[3].textContent.match(reTransitoComData)
+			Utils.safePipe(
+				linha.cells[3],
+				c => c.textContent,
+				t => reTransitoComData.test(t)
+			)
 		);
 
 		if (eventosTransitoComData.length > 0) {
 			const eventoTransitoComData = eventosTransitoComData[0];
 			eventoTransitoComData.classList.add('gmEventoDestacado');
-			const [data] = eventoTransitoComData.cells[3].textContent
-				.match(reTransitoComData)
-				.slice(1);
+			const data = maybe(
+				Utils.safePipe(
+					eventoTransitoComData.cells[3],
+					c => c.textContent,
+					t => t.match(reTransitoComData),
+					m => m[1]
+				)
+			).map(t => ConversorData.analisar(t));
 			dadosTransito.data = ConversorData.analisar(data);
 		} else if (eventosTransito.length > 0) {
 			const eventoTransito = eventosTransito[0];
@@ -650,18 +668,28 @@ export default class PaginaProcesso extends Pagina {
 	}
 }
 
-function maybe<T>(obj: T): NonNullable<T>[] {
-	return [obj].filter((x): x is NonNullable<T> => Boolean(x));
+function maybeParent<T extends HTMLElement = HTMLElement>(
+	selector: string,
+	element: Node
+): Maybe<T>;
+function maybeParent<T extends HTMLElement = HTMLElement>(
+	selector: string
+): { (element: Node): Maybe<T> };
+function maybeParent(selector: string, element?: Node): any {
+	if (element === undefined) {
+		return function(element) {
+			return maybeParent(selector, element);
+		};
+	}
+	let parent = element.parentElement;
+	while (parent !== null && !parent.matches(selector)) {
+		parent = parent.parentElement;
+	}
+	return parent === null ? nothing() : just(parent);
 }
 
-function maybeParent<T extends HTMLElement = HTMLElement>(selector: string) {
-	return (element: Node) => {
-		let parent = element.parentElement;
-		while (parent !== null && !parent.matches(selector)) {
-			parent = parent.parentElement;
-		}
-		return parent === null ? [] : [<T>parent];
-	};
+function maybeText(elemento: Node) {
+	return Maybe.fromNullable(elemento.textContent);
 }
 
 function promiseParent<T extends HTMLElement = HTMLElement>(
