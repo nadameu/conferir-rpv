@@ -1,57 +1,55 @@
+type Fn<T, U> = (_: T) => U;
 type Nullable<T> = T | null | undefined;
-type NullableFn<T, U> = (_: T) => Nullable<U>;
+type NullableFn<T, U> = Fn<T, Nullable<U>>;
 
-export default function safePipe<A, B>(
-	obj: A,
-	fab: NullableFn<A, B>
-): Nullable<B>;
+export default function safePipe<A, B>(obj: Nullable<A>, fab: Fn<A, B>): B;
 export default function safePipe<A, B, C>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
-	fbc: NullableFn<B, C>
-): Nullable<C>;
+	fbc: Fn<B, C>
+): C;
 export default function safePipe<A, B, C, D>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
 	fbc: NullableFn<B, C>,
-	fcd: NullableFn<C, D>
-): Nullable<D>;
+	fcd: Fn<C, D>
+): D;
 export default function safePipe<A, B, C, D, E>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
 	fbc: NullableFn<B, C>,
 	fcd: NullableFn<C, D>,
-	fde: NullableFn<D, E>
-): Nullable<E>;
+	fde: Fn<D, E>
+): E;
 export default function safePipe<A, B, C, D, E, F>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
 	fbc: NullableFn<B, C>,
 	fcd: NullableFn<C, D>,
 	fde: NullableFn<D, E>,
-	fef: NullableFn<E, F>
-): Nullable<F>;
+	fef: Fn<E, F>
+): F;
 export default function safePipe<A, B, C, D, E, F, G>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
 	fbc: NullableFn<B, C>,
 	fcd: NullableFn<C, D>,
 	fde: NullableFn<D, E>,
 	fef: NullableFn<E, F>,
-	ffg: NullableFn<F, G>
-): Nullable<G>;
+	ffg: Fn<F, G>
+): G;
 export default function safePipe<A, B, C, D, E, F, G, H>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
 	fbc: NullableFn<B, C>,
 	fcd: NullableFn<C, D>,
 	fde: NullableFn<D, E>,
 	fef: NullableFn<E, F>,
 	ffg: NullableFn<F, G>,
-	fgh: NullableFn<G, H>
-): Nullable<H>;
+	fgh: Fn<G, H>
+): H;
 export default function safePipe<A, B, C, D, E, F, G, H, I>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
 	fbc: NullableFn<B, C>,
 	fcd: NullableFn<C, D>,
@@ -59,10 +57,10 @@ export default function safePipe<A, B, C, D, E, F, G, H, I>(
 	fef: NullableFn<E, F>,
 	ffg: NullableFn<F, G>,
 	fgh: NullableFn<G, H>,
-	fhi: NullableFn<H, I>
-): Nullable<I>;
+	fhi: Fn<H, I>
+): I;
 export default function safePipe<A, B, C, D, E, F, G, H, I, J>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
 	fbc: NullableFn<B, C>,
 	fcd: NullableFn<C, D>,
@@ -71,10 +69,10 @@ export default function safePipe<A, B, C, D, E, F, G, H, I, J>(
 	ffg: NullableFn<F, G>,
 	fgh: NullableFn<G, H>,
 	fhi: NullableFn<H, I>,
-	fij: NullableFn<I, J>
-): Nullable<J>;
+	fij: Fn<I, J>
+): J;
 export default function safePipe<A, B, C, D, E, F, G, H, I, J, K>(
-	obj: A,
+	obj: Nullable<A>,
 	fab: NullableFn<A, B>,
 	fbc: NullableFn<B, C>,
 	fcd: NullableFn<C, D>,
@@ -84,8 +82,8 @@ export default function safePipe<A, B, C, D, E, F, G, H, I, J, K>(
 	fgh: NullableFn<G, H>,
 	fhi: NullableFn<H, I>,
 	fij: NullableFn<I, J>,
-	fjk: NullableFn<J, K>
-): Nullable<K>;
-export default function safePipe(...args: any[]) {
-	return args.reduce((x, f) => (x ? f(x) : null));
+	fjk: Fn<J, K>
+): K;
+export default function safePipe(obj, ...fns) {
+	return fns.reduce((x, f) => (x == null ? null : f(x)), obj);
 }
