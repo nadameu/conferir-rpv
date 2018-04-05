@@ -5,6 +5,7 @@ import { ConversorData, ConversorDataHora } from '../Conversor';
 import Pagina from './Pagina';
 import { PaginaListar, PaginaRedirecionamento } from './index';
 import * as Utils from '../Utils';
+import { lefts, rights } from '../Utils/promises';
 import * as XHR from '../XHR';
 import { RequisicaoListarAntiga, RequisicaoListarNova } from '../Requisicao';
 
@@ -12,52 +13,51 @@ export default class PaginaProcesso extends Pagina {
 	janelasDependentes = null;
 	urlEditarRequisicoes = null;
 
-	get assuntos() {
-		const tabela = this.doc.querySelector(
+	async obterAssuntos() {
+		const tabela = await this.query<HTMLTableElement>(
 			'table[summary="Assuntos"]'
-		) as HTMLTableElement;
+		);
 		return Array.from(tabela.rows)
 			.filter((_, i) => i > 0)
 			.map(linha => linha.cells[0])
 			.map(celula => celula.textContent);
 	}
 
-	get autores() {
-		const links = Array.from(
-			this.doc.querySelectorAll('a[data-parte="AUTOR"]')
-		);
-		const autores = links.map(link => {
-			const nome = link.textContent;
-			let celula = link;
-			while (celula && celula.tagName.toLowerCase() !== 'td') {
-				celula = celula.parentElement;
-			}
-			const cpfCnpj = celula
-				.querySelector('span[id^="spnCpfParteAutor"]')
-				.textContent.replace(/\D/g, '');
-			const oabAdvogados = Array.from(celula.querySelectorAll('a')).filter(
-				oab =>
-					oab.hasAttribute('onmouseover') &&
-					oab.getAttribute('onmouseover').match(/ADVOGADO/)
+	obterAutores() {
+		const links = this.queryAll<HTMLAnchorElement>('a[data-parte="AUTOR"]');
+		const autores = links.map(async link => {
+			const nome = await promiseText(link);
+			const celula = await promiseParent<HTMLTableCellElement>(link, 'td');
+			const cpfCnpj = await this.queryTexto(
+				'span[id^="spnCpfParteAutor"]'
+			).then(texto => texto.replace(/\D/g, ''));
+			const oabAdvogados = this.queryAll('a', celula).filter(oab =>
+				(texto => texto && texto.match(/ADVOGADO/))(
+					oab.getAttribute('onmouseover')
+				)
 			);
-			const advogados = oabAdvogados.map(
-				oab => oab.previousElementSibling.textContent
-			);
+			const advogados = oabAdvogados
+				.flatMap(oab => maybe(oab.previousElementSibling))
+				.flatMap(el => maybe(el.textContent));
 			return {
 				nome,
 				cpfCnpj,
 				advogados,
 			};
 		});
-		return autores;
+		lefts(autores).then(erros =>
+			erros.forEach(erro => {
+				console.error(erro);
+			})
+		);
+		return rights(autores);
 	}
 
-	get autuacao() {
-		const texto = this.doc.getElementById('txtAutuacao').textContent;
-		return ConversorDataHora.analisar(texto);
+	async obterAutuacao() {
+		return ConversorDataHora.analisar(await this.queryTexto('#txtAutuacao'));
 	}
 
-	get calculos() {
+	obterCalculos() {
 		return this.destacarDocumentosPorTipo('CALC');
 	}
 
@@ -395,79 +395,101 @@ export default class PaginaProcesso extends Pagina {
 		}
 	}
 
-	destacarDocumentos(propriedade, regularExpression) {
-		const linhasEventos = Array.from(this.tabelaEventos.tBodies).reduce(
-			(arr, tbody) => arr.concat(Array.from(tbody.rows)),
-			[] as HTMLTableRowElement[]
-		);
-		const dadosEventos = [];
-		linhasEventos.forEach(linha => {
-			let linksDocumentos = [];
-			if (propriedade === 'tipo') {
-				linksDocumentos = Array.from(
-					linha.querySelectorAll<HTMLAnchorElement>('.infraLinkDocumento')
-				).filter(link => link.textContent.match(regularExpression));
-			} else if (propriedade === 'evento') {
-				if (
-					linha
-						.querySelector('td.infraEventoDescricao')
-						.textContent.trim()
-						.match(regularExpression)
-				) {
-					linksDocumentos = Array.from(
-						linha.querySelectorAll('.infraLinkDocumento')
+	destacarDocumentos(
+		linksDocumentosLinha: (linha: HTMLTableRowElement) => HTMLAnchorElement[]
+	) {
+		return Array.from(this.tabelaEventos.tBodies)
+			.map(tbody => Array.from(tbody.rows))
+			.flatten()
+			.reduce((dadosEventos: DadosEvento[], linha) => {
+				const documentos = linksDocumentosLinha(linha).reduce(
+					(documentos: Documento[], link) => {
+						const match = (texto => texto && texto.match(/^(.*?)(\d+)$/))(
+							link.textContent
+						);
+						if (match) {
+							const [nome, tipo, ordem] = match;
+							documentos.push({
+								ordem: Utils.parseDecimalInt(ordem),
+								nome,
+								tipo,
+							});
+						}
+						return documentos;
+					},
+					[]
+				);
+
+				if (documentos.length > 0) {
+					linha.classList.add('gmEventoDestacado');
+
+					const evento = Utils.safePipe(
+						linha.cells[1],
+						celula => celula.textContent,
+						texto => Utils.parseDecimalInt(texto)
 					);
+					const data = Utils.safePipe(
+						linha.cells[2],
+						celula => celula.textContent,
+						texto => ConversorDataHora.analisar(texto)
+					);
+					const descricao = Utils.safePipe(
+						linha.cells[3],
+						celula => celula.querySelector('label.infraEventoDescricao'),
+						label => label.textContent
+					);
+					if (evento && data && descricao) {
+						dadosEventos.push({ evento, data, descricao, documentos });
+					}
 				}
-			} else if (propriedade === 'memo') {
-				let memos = Array.from(
-					linha.querySelectorAll('.infraTextoTooltip')
-				).filter(memo => memo.textContent.match(regularExpression));
-				linksDocumentos = memos.map(memo => {
-					let celulaDocumento = memo.parentElement;
-					while (
-						celulaDocumento &&
-						celulaDocumento.tagName.toLowerCase() !== 'td'
-					)
-						celulaDocumento = celulaDocumento.parentElement;
-					return celulaDocumento.querySelector('.infraLinkDocumento');
-				});
-			}
-			if (linksDocumentos.length > 0) {
-				let dadosEvento = {
-					evento: Utils.parseDecimalInt(linha.cells[1].textContent),
-					data: ConversorDataHora.analisar(linha.cells[2].textContent),
-					descricao: linha.cells[3].querySelector('label.infraEventoDescricao')
-						.textContent,
-					documentos: [],
-				};
-				linha.classList.add('gmEventoDestacado');
-				linksDocumentos.forEach(link => {
-					let [nome, tipo, ordem] = link.textContent.match(/^(.*?)(\d+)$/);
-					dadosEvento.documentos.push({
-						ordem: Utils.parseDecimalInt(ordem),
-						nome: nome,
-						tipo: tipo,
-					});
-				});
-				dadosEventos.push(dadosEvento);
-			}
-		});
-		return dadosEventos;
+				return dadosEventos;
+			}, []);
 	}
 
 	destacarDocumentosPorEvento(regularExpression) {
-		return this.destacarDocumentos('evento', regularExpression);
+		return this.destacarDocumentos(linha => {
+			return [linha]
+				.filter(linha => {
+					const celulaDescricao = linha.querySelector<HTMLTableCellElement>(
+						'td.infraEventoDescricao'
+					);
+					const texto = celulaDescricao && celulaDescricao.textContent;
+					return texto && texto.trim().match(regularExpression);
+				})
+				.flatMap(linha => this.queryAll('.infraLinkDocumento', linha));
+		});
 	}
 
 	destacarDocumentosPorMemo(regularExpression) {
-		return this.destacarDocumentos('memo', regularExpression);
+		return this.destacarDocumentos(linha => {
+			let memos = this.queryAll('.infraTextoTooltip', linha).filter(
+				memo => memo.textContent && memo.textContent.match(regularExpression)
+			);
+			return memos
+				.map(memo => {
+					let celulaDocumento = memo.parentElement;
+					while (celulaDocumento && !celulaDocumento.matches('td')) {
+						celulaDocumento = celulaDocumento.parentElement;
+					}
+					return <HTMLTableCellElement>celulaDocumento;
+				})
+				.filter((celula): celula is HTMLTableCellElement => celula !== null)
+				.map(celula =>
+					celula.querySelector<HTMLAnchorElement>('.infraLinkDocumento')
+				)
+				.filter((link): link is HTMLAnchorElement => link !== null);
+		});
 	}
 
 	destacarDocumentosPorTipo(...abreviacoes) {
 		const regularExpression = new RegExp(
 			'^(' + abreviacoes.join('|') + ')\\d+$'
 		);
-		return this.destacarDocumentos('tipo', regularExpression);
+		return this.destacarDocumentos(linha =>
+			this.queryAll<HTMLAnchorElement>('.infraLinkDocumento', linha).filter(
+				link => link.textContent && link.textContent.match(regularExpression)
+			)
+		);
 	}
 
 	enviarDadosProcesso(janela, origem) {
@@ -634,4 +656,28 @@ export default class PaginaProcesso extends Pagina {
 			}
 		}
 	}
+}
+
+function maybe<T>(obj: T | null | undefined) {
+	return [obj].filter((x): x is T => Boolean(x));
+}
+
+function promiseParent<T extends HTMLElement = HTMLElement>(
+	element: Node,
+	selector: string
+) {
+	let parent = element.parentElement;
+	while (parent !== null && !parent.matches(selector)) {
+		parent = parent.parentElement;
+	}
+	return parent === null
+		? Promise.reject(new Error(`Ancestral não encontrado: ${selector}.`))
+		: Promise.resolve(<T>parent);
+}
+
+function promiseText(elemento: Node) {
+	const texto = elemento.textContent;
+	return texto
+		? Promise.resolve(texto)
+		: Promise.reject(new Error('Elemento não possui texto.'));
 }

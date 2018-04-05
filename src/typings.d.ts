@@ -24,6 +24,7 @@ interface DadosProcesso {
 interface Documento {
 	nome: string;
 	ordem: number;
+	tipo: string;
 }
 
 interface Evento extends EventoI {
