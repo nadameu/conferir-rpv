@@ -6,7 +6,6 @@ import { Maybe, just, nothing } from '../Maybe';
 import Pagina from './Pagina';
 import { PaginaListar, PaginaRedirecionamento } from './index';
 import * as Utils from '../Utils';
-import { lefts, rights } from '../Utils/promises';
 import * as XHR from '../XHR';
 import { RequisicaoListarAntiga, RequisicaoListarNova } from '../Requisicao';
 
@@ -17,56 +16,61 @@ export default class PaginaProcesso extends Pagina {
 	private requisicoesAPreparar: Set<number> = new Set();
 
 	obterAssuntos() {
-		return Maybe.fromArray(
-			this.queryAll<HTMLTableElement>('table[summary="Assuntos"]')
-		).map(tabela =>
-			Array.from(tabela.rows)
-				.filter((_, i) => i > 0)
-				.flatMap(linha =>
-					Maybe.fromNullable(linha.cells[0])
-						.chainNullable(c => c.textContent)
-						.toArray()
-				)
+		const maybeTabela = this.queryMaybe<HTMLTableElement>(
+			'table[summary="Assuntos"]'
+		);
+		const linhas = maybeTabela
+			.toArray()
+			.flatMap(tabela => Array.from(tabela.rows).filter((_, i) => i > 0));
+		const maybeAssuntos = linhas.map(linha =>
+			Maybe.fromNullable(linha.cells[0]).chainNullable(c => c.textContent)
+		);
+		const assuntos = Maybe.catMaybes(maybeAssuntos);
+		return assuntos;
+	}
+
+	obterAutor(link: HTMLAnchorElement) {
+		const maybeNome = maybeText(link);
+		const maybeCelula = maybeParent<HTMLTableCellElement>('td', link);
+		const maybeCpfCnpj = this.queryMaybe<HTMLSpanElement>(
+			'span[id^="spnCpfParteAutor"]'
+		)
+			.chainNullable(c => c.textContent)
+			.map(t => t.replace(/\D/g, ''));
+
+		return Maybe.sequence([maybeNome, maybeCelula, maybeCpfCnpj]).map(
+			([nome, celula, cpfCnpj]) => {
+				const oabAdvogados = this.queryAll<HTMLAnchorElement>(
+					'a',
+					celula
+				).filter(oab =>
+					Maybe.fromNullable(oab.getAttribute('onmouseover')).maybe(
+						false,
+						texto => /ADVOGADO/.test(texto)
+					)
+				);
+				const advogados = Maybe.catMaybes(
+					oabAdvogados.map(oab =>
+						Maybe.fromNullable(oab.previousElementSibling).chainNullable(
+							el => el.textContent
+						)
+					)
+				);
+				const dadosAutor: DadosAutor = {
+					nome,
+					cpfCnpj,
+					advogados,
+				};
+				return dadosAutor;
+			}
 		);
 	}
 
 	obterAutores() {
-		return this.queryAll<HTMLAnchorElement>('a[data-parte="AUTOR"]').flatMap(
-			link => {
-				const maybeNome = maybeText(link);
-				const maybeCelula = maybeParent<HTMLTableCellElement>('td', link);
-				const maybeCpfCnpj = Maybe.fromArray(
-					this.queryAll<HTMLSpanElement>('span[id^="spnCpfParteAutor"]')
-				)
-					.chainNullable(c => c.textContent)
-					.map(t => t.replace(/\D/g, ''));
-
-				return Maybe.sequence([maybeNome, maybeCelula, maybeCpfCnpj])
-					.map(([nome, celula, cpfCnpj]) => {
-						const oabAdvogados = this.queryAll<HTMLAnchorElement>(
-							'a',
-							celula
-						).filter(oab =>
-							Maybe.fromNullable(oab.getAttribute('onmouseover')).maybe(
-								false,
-								texto => /ADVOGADO/.test(texto)
-							)
-						);
-						const advogados = oabAdvogados.flatMap(oab =>
-							Maybe.fromNullable(oab.previousElementSibling)
-								.chainNullable(el => el.textContent)
-								.toArray()
-						);
-						const dadosAutor: DadosAutor = {
-							nome,
-							cpfCnpj,
-							advogados,
-						};
-						return dadosAutor;
-					})
-					.toArray();
-			}
-		);
+		const links = this.queryAll<HTMLAnchorElement>('a[data-parte="AUTOR"]');
+		const maybeDadosAutores = links.map(link => this.obterAutor(link));
+		const dadosAutores = Maybe.catMaybes(maybeDadosAutores);
+		return dadosAutores;
 	}
 
 	async obterAutuacao() {
@@ -77,7 +81,7 @@ export default class PaginaProcesso extends Pagina {
 		return this.destacarDocumentosPorTipo('CALC');
 	}
 
-	get contratos() {
+	obterContratos() {
 		const contratos = this.destacarDocumentosPorTipo('CONHON');
 		if (contratos.length > 0) return contratos;
 		const outros = this.destacarDocumentosPorMemo(/contrato|honor/i);
@@ -85,22 +89,21 @@ export default class PaginaProcesso extends Pagina {
 		return (<DadosEvento[]>[]).concat(outros, procuracoes);
 	}
 
-	get honorarios() {
-		let honorarios = this.destacarDocumentosPorTipo('SOLPGTOHON');
-		honorarios = honorarios.concat(
+	obterHonorarios() {
+		return (<DadosEvento[]>[]).concat(
+			this.destacarDocumentosPorTipo('SOLPGTOHON'),
 			this.destacarDocumentosPorTipo('PGTOPERITO')
 		);
-		return honorarios;
 	}
 
 	obterInformacoesAdicionais() {
 		return this.query('#fldInformacoesAdicionais');
 	}
 
-	get justicaGratuita() {
-		const elemento = this.doc.getElementById('lnkJusticaGratuita');
-		if (elemento) return elemento.textContent;
-		return '???';
+	obterJusticaGratuita() {
+		return this.queryMaybe('#lnkJusticaGratuita')
+			.chainNullable(l => l.textContent)
+			.maybe('???', t => t);
 	}
 
 	async obterLinkListar() {
@@ -122,18 +125,18 @@ export default class PaginaProcesso extends Pagina {
 		return this.queryTexto('#txtNumProcesso');
 	}
 
-	get reus() {
-		return Array.from(this.doc.querySelectorAll('[id^="spnNomeParteReu"]')).map(
-			elt => elt.textContent
-		);
+	obterReus() {
+		return this.queryAll('[id^="spnNomeParteReu"]')
+			.map(maybeText)
+			.flatMap(maybe => maybe.toArray());
 	}
 
-	get sentencas() {
+	obterSentencas() {
 		return this.destacarDocumentosPorEvento(/(^(Julgamento|Sentença))|Voto/);
 	}
 
-	get tabelaEventos() {
-		return this.doc.getElementById('tblEventos') as HTMLTableElement;
+	obterTabelaEventos() {
+		return this.query<HTMLTableElement>('#tblEventos');
 	}
 
 	get transito() {
@@ -170,15 +173,12 @@ export default class PaginaProcesso extends Pagina {
 		if (eventosTransitoComData.length > 0) {
 			const eventoTransitoComData = eventosTransitoComData[0];
 			eventoTransitoComData.classList.add('gmEventoDestacado');
-			const data = maybe(
-				Utils.safePipe(
-					eventoTransitoComData.cells[3],
-					c => c.textContent,
-					t => t.match(reTransitoComData),
-					m => m[1]
-				)
-			).map(t => ConversorData.analisar(t));
-			dadosTransito.data = ConversorData.analisar(data);
+			const maybeData = Maybe.fromNullable(eventoTransitoComData.cells[3])
+				.chainNullable(c => c.textContent)
+				.chainNullable(t => t.match(reTransitoComData))
+				.chainNullable(m => m[1])
+				.map(t => ConversorData.analisar(t));
+			dadosTransito.data = maybeData;
 		} else if (eventosTransito.length > 0) {
 			const eventoTransito = eventosTransito[0];
 			eventoTransito.classList.add('gmEventoDestacado');
