@@ -86,7 +86,6 @@ export default function safePipe<A, B, C, D, E, F, G, H, I, J, K>(
 	fij: NullableFn<I, J>,
 	fjk: NullableFn<J, K>
 ): Nullable<K>;
-export default function safePipe(this: any, a, fab, ...fns) {
-	const result = a && fab(a);
-	return fns.length === 0 ? result : safePipe.apply(this, [result].concat(fns));
+export default function safePipe(...args: any[]) {
+	return args.reduce((x, f) => (x ? f(x) : null));
 }
