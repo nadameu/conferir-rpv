@@ -10,8 +10,9 @@ import * as XHR from '../XHR';
 import { RequisicaoListarAntiga, RequisicaoListarNova } from '../Requisicao';
 
 export default class PaginaProcesso extends Pagina {
-	janelasDependentes = null;
-	urlEditarRequisicoes = null;
+	private fecharAposPreparar = new Set();
+	private janelasDependentes: Map<string, Window> = new Map();
+	urlEditarRequisicoes: Map<number, string> = new Map();
 
 	async obterAssuntos() {
 		const tabela = await this.query<HTMLTableElement>(
@@ -67,14 +68,6 @@ export default class PaginaProcesso extends Pagina {
 		const outros = this.destacarDocumentosPorMemo(/contrato|honor/i);
 		const procuracoes = this.destacarDocumentosPorTipo('PROC');
 		return [].concat(outros, procuracoes);
-	}
-
-	private _fecharAposPreparar;
-	get fecharAposPreparar() {
-		if (!this._fecharAposPreparar) {
-			this._fecharAposPreparar = new Set();
-		}
-		return this._fecharAposPreparar;
 	}
 
 	get honorarios() {
@@ -263,8 +256,6 @@ export default class PaginaProcesso extends Pagina {
 
 	constructor(doc: Document) {
 		super(doc);
-		this.janelasDependentes = new Map();
-		this.urlEditarRequisicoes = new Map();
 	}
 
 	abrirDocumento(evento, documento) {
@@ -331,6 +322,7 @@ export default class PaginaProcesso extends Pagina {
 					const docListar = await XHR.buscarDocumento(this.linkListar.href);
 					const paginaListar = new PaginaListar(docListar);
 					const listaRequisicoes = await paginaListar.obterRequisicoes();
+
 					const requisicoesAntigas = listaRequisicoes.filter(
 						(requisicao): requisicao is RequisicaoListarAntiga =>
 							requisicao.tipo === 'antiga' && requisicao.status === 'Digitada'
@@ -349,6 +341,7 @@ export default class PaginaProcesso extends Pagina {
 							requisicao.numero
 						);
 					}
+
 					const requisicoes = listaRequisicoes.filter(
 						(requisicao): requisicao is RequisicaoListarNova =>
 							requisicao.tipo === 'nova' && requisicao.status === 'Finalizada'
@@ -481,7 +474,7 @@ export default class PaginaProcesso extends Pagina {
 		});
 	}
 
-	destacarDocumentosPorTipo(...abreviacoes) {
+	destacarDocumentosPorTipo(...abreviacoes: string[]) {
 		const regularExpression = new RegExp(
 			'^(' + abreviacoes.join('|') + ')\\d+$'
 		);
