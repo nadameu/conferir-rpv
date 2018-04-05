@@ -7,7 +7,11 @@ import Pagina from './Pagina';
 import { PaginaListar, PaginaRedirecionamento } from './index';
 import * as Utils from '../Utils';
 import * as XHR from '../XHR';
-import { RequisicaoListarAntiga, RequisicaoListarNova } from '../Requisicao';
+import {
+	RequisicaoListar,
+	RequisicaoListarAntiga,
+	RequisicaoListarNova,
+} from '../Requisicao';
 
 export default class PaginaProcesso extends Pagina {
 	private fecharAposPreparar = new Set();
@@ -324,14 +328,49 @@ export default class PaginaProcesso extends Pagina {
 			this.fecharJanelasDependentes();
 		});
 		win.addEventListener('message', this.onMensagemRecebida.bind(this));
-		this.adicionarBotao();
+		await this.adicionarBotao();
 		(await this.obterLinkListar()).addEventListener(
 			'click',
 			this.onLinkListarClicado.bind(this)
 		);
 	}
 
-	adicionarBotao() {
+	async adicionarBotao() {
+		type DadosJanelaRequisicao = {
+			requisicao: number;
+			url: string;
+		};
+		const filtrarRequisicoes = async (
+			listaRequisicoes: RequisicaoListar[],
+			casoAntiga: (
+				_: RequisicaoListarAntiga
+			) => DadosJanelaRequisicao | Promise<DadosJanelaRequisicao>,
+			casoNova: (
+				_: RequisicaoListarNova
+			) => DadosJanelaRequisicao | Promise<DadosJanelaRequisicao>
+		): Promise<void> => {
+			const requisicoesAntigas = listaRequisicoes.filter(
+				(requisicao): requisicao is RequisicaoListarAntiga =>
+					requisicao.tipo === 'antiga' && requisicao.status === 'Digitada'
+			);
+			const requisicoesNovas = listaRequisicoes.filter(
+				(requisicao): requisicao is RequisicaoListarNova =>
+					requisicao.tipo === 'nova' && requisicao.status === 'Finalizada'
+			);
+			if (requisicoesAntigas.length + requisicoesNovas.length !== 1) {
+				this.abrirJanelaListar();
+				return;
+			}
+			let dadosJanelaRequisicao: DadosJanelaRequisicao;
+			if (requisicoesAntigas.length === 1) {
+				dadosJanelaRequisicao = await casoAntiga(requisicoesAntigas[0]);
+			} else {
+				dadosJanelaRequisicao = await casoNova(requisicoesNovas[0]);
+			}
+			const { requisicao, url } = dadosJanelaRequisicao;
+			this.abrirJanelaRequisicao(url, requisicao);
+		};
+
 		const textoBotao = 'Conferir ofício requisitório';
 		const botao = BotaoAcao.criar(textoBotao, evt => {
 			evt.preventDefault();
@@ -341,45 +380,37 @@ export default class PaginaProcesso extends Pagina {
 					botao.textContent = 'Aguarde, carregando...';
 				})
 				.then(async () => {
-					const docListar = await XHR.buscarDocumento(this.linkListar.href);
+					const docListar = await XHR.buscarDocumento(
+						(await this.obterLinkListar()).href
+					);
 					const paginaListar = new PaginaListar(docListar);
 					const listaRequisicoes = await paginaListar.obterRequisicoes();
-
-					const requisicoesAntigas = listaRequisicoes.filter(
-						(requisicao): requisicao is RequisicaoListarAntiga =>
-							requisicao.tipo === 'antiga' && requisicao.status === 'Digitada'
+					return filtrarRequisicoes(
+						listaRequisicoes,
+						async requisicao => {
+							const docRedirecionamento = await XHR.buscarDocumentoExterno(
+								requisicao.urlConsultarAntiga
+							);
+							const paginaRedirecionamento = new PaginaRedirecionamento(
+								docRedirecionamento
+							);
+							const urlRedirecionamento = await paginaRedirecionamento.getUrlRedirecionamento();
+							return {
+								url: urlRedirecionamento,
+								requisicao: requisicao.numero,
+							};
+						},
+						requisicao => {
+							this.urlEditarRequisicoes.set(
+								requisicao.numero,
+								requisicao.urlEditar
+							);
+							return {
+								url: requisicao.urlConsultar,
+								requisicao: requisicao.numero,
+							};
+						}
 					);
-					if (requisicoesAntigas.length === 1) {
-						const requisicao = requisicoesAntigas[0];
-						const docRedirecionamento = await XHR.buscarDocumentoExterno(
-							requisicao.urlConsultarAntiga
-						);
-						const paginaRedirecionamento = new PaginaRedirecionamento(
-							docRedirecionamento
-						);
-						const urlRedirecionamento = await paginaRedirecionamento.getUrlRedirecionamento();
-						return void this.abrirJanelaRequisicao(
-							urlRedirecionamento,
-							requisicao.numero
-						);
-					}
-
-					const requisicoes = listaRequisicoes.filter(
-						(requisicao): requisicao is RequisicaoListarNova =>
-							requisicao.tipo === 'nova' && requisicao.status === 'Finalizada'
-					);
-					if (requisicoes.length === 1) {
-						const requisicao = requisicoes[0];
-						this.urlEditarRequisicoes.set(
-							requisicao.numero,
-							requisicao.urlEditar
-						);
-						return void this.abrirJanelaRequisicao(
-							requisicao.urlConsultar,
-							requisicao.numero
-						);
-					}
-					this.abrirJanelaListar();
 				})
 				.then(() => {
 					botao.textContent = textoBotao;
@@ -394,14 +425,30 @@ export default class PaginaProcesso extends Pagina {
 		frag.appendChild(botao);
 		frag.appendChild(this.doc.createElement('br'));
 
-		this.informacoesAdicionais.parentElement.insertBefore(
-			frag,
-			this.informacoesAdicionais.nextSibling
+		const informacoesAdicionais = await this.obterInformacoesAdicionais();
+		const infoParent = await Maybe.fromNullable(
+			informacoesAdicionais.parentElement
+		).maybe(
+			Promise.reject(new Error('Informações adicionais não possui ancestral.')),
+			x => Promise.resolve(x)
 		);
 
-		const ultimoEvento = Utils.parseDecimalInt(
-			this.tabelaEventos.tBodies[0].rows[0].cells[1].textContent.trim()
-		);
+		infoParent.insertBefore(frag, informacoesAdicionais.nextSibling);
+
+		const ultimoEvento = await Maybe.fromNullable(
+			(await this.obterTabelaEventos()).tBodies[0]
+		)
+			.chainNullable(b => b.rows[0])
+			.chainNullable(r => r.cells[1])
+			.chainNullable(c => c.textContent)
+			.map(t => Utils.parseDecimalInt(t.trim()))
+			.chain(n => (isNaN(n) ? nothing() : just(n)))
+			.maybe(
+				Promise.reject(
+					new Error('Não foi possível localizar o último evento do processo.')
+				),
+				x => Promise.resolve(x)
+			);
 		if (ultimoEvento > 100) {
 			botao.insertAdjacentHTML(
 				'afterend',
