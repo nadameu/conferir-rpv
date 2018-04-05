@@ -12,8 +12,14 @@ export abstract class Maybe<A> {
 	map<B>(f: (_: A) => B): Maybe<B> {
 		return this.maybe(nothing(), a => Maybe.of(f(a)));
 	}
-	toArray<B>(this: Maybe<B | B[]>): B[] {
-		return this.maybe([], xs => (Array.isArray(xs) ? xs : [xs]));
+	toArray(): A[] {
+		return this.maybe([], x => [x]);
+	}
+	/**
+	 * Retorna um array com os valores dos Justs
+	 */
+	static catMaybes<T>(maybes: Maybe<T>[]): T[] {
+		return maybes.flatMap(maybe => maybe.toArray());
 	}
 	static fromArray<T>(xs: T[]): Maybe<T> {
 		return xs.length === 0 ? nothing() : just(xs[0]);
