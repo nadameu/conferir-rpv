@@ -1,4 +1,4 @@
-import Maybe from '../Maybe';
+import * as Option from 'fp-ts/lib/Option';
 
 export default abstract class Pagina {
 	constructor(protected readonly doc: Document) {}
@@ -22,11 +22,11 @@ export default abstract class Pagina {
 		return Promise.resolve(elemento);
 	}
 
-	queryMaybe<T extends Element>(
+	queryOption<T extends Element>(
 		selector: string,
 		context: NodeSelector = this.doc
 	) {
-		return Maybe.fromNullable(context.querySelector<T>(selector));
+		return Option.fromNullable(context.querySelector<T>(selector));
 	}
 
 	queryTexto<T extends Element>(

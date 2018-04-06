@@ -20,10 +20,15 @@ interface DadosEvento extends EventoI {
 }
 
 interface DadosProcesso {
+	assuntos: string[];
+	autores: DadosAutor[];
+	autuacao: Date;
 	calculos: DadosEvento[];
 	contratos: DadosEvento[];
 	honorarios: DadosEvento[];
 	justicaGratuita: string;
+	magistrado: string;
+	reus: string[];
 	sentencas: DadosEvento[];
 }
 
