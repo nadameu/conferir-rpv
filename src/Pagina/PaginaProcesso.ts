@@ -576,7 +576,7 @@ export default class PaginaProcesso extends Pagina {
 		);
 	}
 
-	async enviarDadosProcesso(janela, origem) {
+	async enviarDadosProcesso(janela: Window, origem: string) {
 		type Dados = { acao: Acoes.RESPOSTA_DADOS; dados: DadosProcesso };
 		const data: Dados = {
 			acao: Acoes.RESPOSTA_DADOS,
@@ -597,18 +597,22 @@ export default class PaginaProcesso extends Pagina {
 		janela.postMessage(JSON.stringify(data), origem);
 	}
 
-	enviarRespostaJanelaAberta(janela, origem) {
+	enviarRespostaJanelaAberta(janela: Window, origem: string) {
 		const data = {
 			acao: Acoes.RESPOSTA_JANELA_ABERTA,
 		};
 		this.enviarSolicitacao(janela, origem, data);
 	}
 
-	enviarSolicitacao(janela, origem, dados) {
+	enviarSolicitacao(janela: Window, origem: string, dados: Solicitacao) {
 		janela.postMessage(JSON.stringify(dados), origem);
 	}
 
-	enviarSolicitacaoPrepararIntimacao(janela, origem, requisicao) {
+	enviarSolicitacaoPrepararIntimacao(
+		janela: Window,
+		origem: string,
+		requisicao: number
+	) {
 		const data = {
 			acao: Acoes.PREPARAR_INTIMACAO_ANTIGA,
 			requisicao: requisicao,
@@ -643,7 +647,7 @@ export default class PaginaProcesso extends Pagina {
 		win.close();
 	}
 
-	fecharJanelaRequisicao(numero) {
+	fecharJanelaRequisicao(numero: number) {
 		this.fecharJanela(`requisicao${numero}`);
 	}
 
@@ -657,7 +661,7 @@ export default class PaginaProcesso extends Pagina {
 		}
 	}
 
-	onLinkListarClicado(evt) {
+	onLinkListarClicado(evt: MouseEvent) {
 		evt.preventDefault();
 		evt.stopPropagation();
 		let abrirEmJanela = false;
@@ -667,16 +671,18 @@ export default class PaginaProcesso extends Pagina {
 		this.abrirJanelaListar(abrirEmJanela);
 	}
 
-	onMensagemRecebida(evt) {
+	onMensagemRecebida(evt: MessageEvent) {
 		console.info('Mensagem recebida', evt);
 		if (
 			evt.origin === 'http://sap.trf4.gov.br' ||
 			evt.origin === this.doc.location.origin
 		) {
-			const data = JSON.parse(evt.data);
+			const data: Solicitacao = JSON.parse(evt.data);
 			if (evt.origin === 'http://sap.trf4.gov.br') {
 				if (data.acao === Acoes.BUSCAR_DADOS) {
-					this.enviarDadosProcesso(evt.source, evt.origin);
+					if (evt.source) {
+						this.enviarDadosProcesso(evt.source, evt.origin);
+					}
 				} else if (data.acao === Acoes.ABRIR_DOCUMENTO) {
 					this.abrirDocumento(data.evento, data.documento);
 				} else if (data.acao === Acoes.EDITAR_REQUISICAO_ANTIGA) {
@@ -695,11 +701,13 @@ export default class PaginaProcesso extends Pagina {
 					);
 				} else if (data.acao === Acoes.VERIFICAR_JANELA) {
 					if (this.requisicoesAPreparar.has(data.requisicao)) {
-						this.enviarSolicitacaoPrepararIntimacao(
-							evt.source,
-							evt.origin,
-							data.requisicao
-						);
+						if (evt.source) {
+							this.enviarSolicitacaoPrepararIntimacao(
+								evt.source,
+								evt.origin,
+								data.requisicao
+							);
+						}
 					}
 				} else if (data.acao === Acoes.ORDEM_CONFIRMADA) {
 					if (
@@ -716,7 +724,9 @@ export default class PaginaProcesso extends Pagina {
 				}
 			} else if (evt.origin === this.doc.location.origin) {
 				if (data.acao === Acoes.VERIFICAR_JANELA) {
-					this.enviarRespostaJanelaAberta(evt.source, evt.origin);
+					if (evt.source) {
+						this.enviarRespostaJanelaAberta(evt.source, evt.origin);
+					}
 				} else if (data.acao === Acoes.ABRIR_REQUISICAO) {
 					console.log('Pediram-me para abrir uma requisicao', data.requisicao);
 					if (data.requisicao.tipo === 'antiga') {
@@ -740,7 +750,9 @@ export default class PaginaProcesso extends Pagina {
 				} else if (data.acao === Acoes.ABRIR_DOCUMENTO) {
 					this.abrirDocumento(data.evento, data.documento);
 				} else if (data.acao === Acoes.BUSCAR_DADOS) {
-					this.enviarDadosProcesso(evt.source, evt.origin);
+					if (evt.source) {
+						this.enviarDadosProcesso(evt.source, evt.origin);
+					}
 				}
 			}
 		}
@@ -756,7 +768,7 @@ function optionParent<T extends HTMLElement = HTMLElement>(
 ): { (element: Node): Option.Option<T> };
 function optionParent(selector: string, element?: Node): any {
 	if (element === undefined) {
-		return function(element) {
+		return function(element: Node) {
 			return optionParent(selector, element);
 		};
 	}
