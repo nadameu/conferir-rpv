@@ -639,7 +639,7 @@ export default class PaginaRequisicao extends Pagina {
 			dataFechamento === dataTransitoRequisicao;
 		this.validarElemento(
 			'.gm-requisicao__dados__dataTransito',
-			isTrue || (isUndefined && undefined)
+			isTrue ? true : isUndefined ? undefined : false
 		);
 
 		// Conferir se requerido é réu na ação
