@@ -30,6 +30,14 @@ interface DadosProcesso {
 	magistrado: string;
 	reus: string[];
 	sentencas: DadosEvento[];
+	transito: DadosTransito;
+}
+
+interface DadosTransito {
+	dataTransito?: Date;
+	dataEvento?: Date;
+	dataDecurso?: Date;
+	dataFechamento?: Date;
 }
 
 interface Documento {

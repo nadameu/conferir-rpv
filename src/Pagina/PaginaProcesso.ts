@@ -1,5 +1,6 @@
-import * as Option from 'fp-ts/lib/Option';
+import { liftA3, liftA2 } from 'fp-ts/lib/Apply';
 import * as array from 'fp-ts/lib/Array';
+import * as Option from 'fp-ts/lib/Option';
 
 import './PaginaProcesso.scss';
 import Acoes from '../Acoes';
@@ -14,7 +15,6 @@ import {
 	RequisicaoListarAntiga,
 	RequisicaoListarNova,
 } from '../Requisicao';
-import { liftA3 } from 'fp-ts/lib/Apply';
 
 export default class PaginaProcesso extends Pagina {
 	private fecharAposPreparar = new Set();
@@ -29,9 +29,7 @@ export default class PaginaProcesso extends Pagina {
 		const linhas = array
 			.catOptions([maybeTabela])
 			.flatMap(tabela => Array.from(tabela.rows).filter((_, i) => i > 0));
-		const maybeAssuntos = linhas.map(linha =>
-			Option.fromNullable(linha.cells[0]).mapNullable(c => c.textContent)
-		);
+		const maybeAssuntos = linhas.map(optionTextoCelula(0));
 		const assuntos = array.catOptions(maybeAssuntos);
 		return assuntos;
 	}
@@ -146,127 +144,152 @@ export default class PaginaProcesso extends Pagina {
 		return this.query<HTMLTableElement>('#tblEventos');
 	}
 
-	async obterTransito() {
+	async obterTransito(): Promise<DadosTransito> {
 		const reDecisoesTerminativas = /(^(Julgamento|Sentença))|Voto|Recurso Extraordinário Inadmitido|Pedido de Uniformização para a Turma Nacional - Inadmitido/;
 		const reDecurso = /CIÊNCIA, COM RENÚNCIA AO PRAZO|Decurso de Prazo/;
 		const reTransito = /Trânsito em Julgado/;
 		const reTransitoComData = /Data: (\d\d\/\d\d\/\d\d\d\d)/;
 
-		const dadosTransito: {
-			data?: Date;
-			dataDecurso?: Date;
-			dataEvento?: Date;
-			dataFechamento?: Date;
-		} = {};
-
-		const linhasEventos = Array.from(this.tabelaEventos.tBodies)
+		const linhasEventos = Array.from((await this.obterTabelaEventos()).tBodies)
 			.map(tbody => Array.from(tbody.rows))
 			.flatten();
 		const eventosTransito = linhasEventos.filter(linha =>
-			Utils.safePipe(
-				linha.cells[3],
-				c => c.textContent,
-				t => reTransito.test(t)
-			)
+			optionTextoCelula(3)(linha).exists(t => reTransito.test(t))
 		);
 		const eventosTransitoComData = eventosTransito.filter(linha =>
-			Utils.safePipe(
-				linha.cells[3],
-				c => c.textContent,
-				t => reTransitoComData.test(t)
-			)
+			optionTextoCelula(3)(linha).exists(t => reTransitoComData.test(t))
 		);
 
 		if (eventosTransitoComData.length > 0) {
 			const eventoTransitoComData = eventosTransitoComData[0];
 			eventoTransitoComData.classList.add('gmEventoDestacado');
-			const maybeData = Maybe.fromNullable(eventoTransitoComData.cells[3])
-				.chainNullable(c => c.textContent)
-				.chainNullable(t => t.match(reTransitoComData))
-				.chainNullable(m => m[1])
+			const maybeDataTransito = optionTextoCelula(3)(eventoTransitoComData)
+				.mapNullable(t => t.match(reTransitoComData))
+				.mapNullable(m => m[1])
 				.map(t => ConversorData.analisar(t));
-			dadosTransito.data = maybeData;
-		} else if (eventosTransito.length > 0) {
-			const eventoTransito = eventosTransito[0];
-			eventoTransito.classList.add('gmEventoDestacado');
-			const dataEvento = ConversorDataHora.analisar(
-				eventoTransito.cells[2].textContent
-			);
-			dadosTransito.dataEvento = dataEvento;
+			if (maybeDataTransito.isSome()) {
+				return { dataTransito: maybeDataTransito.value };
+			}
 		}
 
-		if (!dadosTransito.data) {
-			const eventosDecisoesTerminativas = linhasEventos.filter(linha =>
-				linha.cells[3].textContent.match(reDecisoesTerminativas)
+		let dadosTransito: DadosTransito = {};
+		if (eventosTransito.length > 0) {
+			const eventoTransito = eventosTransito[0];
+			eventoTransito.classList.add('gmEventoDestacado');
+			const maybeDataEvento = optionTextoCelula(2)(eventoTransito).map(t =>
+				ConversorDataHora.analisar(t)
 			);
-			if (eventosDecisoesTerminativas.length > 0) {
-				const eventoDecisaoTerminativa = eventosDecisoesTerminativas[0];
-				const numeroEventoDecisaoTerminativa = Utils.parseDecimalInt(
-					eventoDecisaoTerminativa.cells[1].textContent
-				);
-				const reReferenteDecisao = new RegExp(
-					'^Intimação Eletrônica - Expedida/Certificada - Julgamento|Refer\\. ao Evento: ' +
-						numeroEventoDecisaoTerminativa.toString() +
-						'(\\D|$)'
-				);
-				const eventosIntimacao = linhasEventos.filter(linha => {
-					if (
-						Utils.parseDecimalInt(linha.cells[1].textContent) <=
-						numeroEventoDecisaoTerminativa
+			if (maybeDataEvento.isSome()) {
+				dadosTransito = { dataEvento: maybeDataEvento.value };
+			}
+		}
+
+		const eventosDecisoesTerminativas = linhasEventos.filter(linha =>
+			optionTextoCelula(3)(linha).exists(t => reDecisoesTerminativas.test(t))
+		);
+		if (eventosDecisoesTerminativas.length > 0) {
+			const eventoDecisaoTerminativa = eventosDecisoesTerminativas[0];
+
+			const maybeNumeroEventoDecisaoTerminativa = optionTextoCelula(1)(
+				eventoDecisaoTerminativa
+			).map(t => Utils.parseDecimalInt(t));
+
+			const maybeReReferenteDecisao = maybeNumeroEventoDecisaoTerminativa.map(
+				numeroEventoDecisaoTerminativa =>
+					new RegExp(
+						`^Intimação Eletrônica - Expedida/Certificada - Julgamento|Refer\\. ao Evento: ${numeroEventoDecisaoTerminativa}(\\D|$)`
 					)
-						return false;
-					if (!linha.cells[3].textContent.match(reReferenteDecisao))
-						return false;
-					const parte = linha.cells[3].querySelector('.infraEventoPrazoParte');
-					if (!parte) return false;
-					return parte.dataset.parte.match(/^(AUTOR|REU|MPF)$/) !== null;
-				});
-				if (eventosIntimacao.length > 0) {
-					const reTooltip = /^return infraTooltipMostrar\('([^']+)','Informações do Evento',1000\);$/;
-					const informacoesFechamentoIntimacoes = eventosIntimacao
-						.map(evento => {
-							const lupa = evento.cells[1].querySelector('a[onmouseover]');
-							if (!lupa) return null;
-							const comando = lupa.getAttribute('onmouseover');
-							const [tooltip] = comando.match(reTooltip).slice(1);
-							const div = this.doc.createElement('div');
-							div.innerHTML = tooltip;
-							let textos = Array.from(div.querySelectorAll('font')).map(texto =>
-								texto.textContent.trim()
-							);
-							let indice = 0;
-							let textoAtual = textos[indice];
-							while (
-								textoAtual &&
-								textoAtual.match(/^Fechamento do Prazo:$/) === null
-							) {
-								textoAtual = textos[++indice];
-							}
-							if (!textoAtual) return null;
-							const informacaoDataHora = ConversorDataHora.analisar(
-								textos[indice + 1]
-							);
-							const informacaoEvento = textos[indice + 2];
-							const [numeroEvento, descricaoEvento] = informacaoEvento
-								.match(/^(\d+) - (.+)$/)
-								.slice(1);
-							return {
-								numero: Utils.parseDecimalInt(numeroEvento),
-								data: informacaoDataHora,
-								descricao: descricaoEvento,
-							};
-						})
-						.filter(informacao => informacao !== null);
-					if (informacoesFechamentoIntimacoes.length > 0) {
-						const fechamentoMaisRecente = informacoesFechamentoIntimacoes.reduce(
-							(anterior, atual) =>
-								anterior.numero > atual.numero ? anterior : atual
-						);
-						const [eventoFechamentoMaisRecente] = linhasEventos.filter(
-							linha =>
-								Utils.parseDecimalInt(linha.cells[1].textContent) ===
-								fechamentoMaisRecente.numero
-						);
+			);
+
+			const eventosIntimacao = liftA2(Option.option)(
+				(numeroEventoDecisaoTerminativa: number) => (
+					reReferenteDecisao: RegExp
+				) =>
+					linhasEventos
+						.filter(linha =>
+							optionTextoCelula(1)(linha)
+								.map(t => Utils.parseDecimalInt(t))
+								.exists(n => n <= numeroEventoDecisaoTerminativa)
+						)
+						.filter(linha =>
+							optionTextoCelula(3)(linha).exists(
+								t => !reReferenteDecisao.test(t)
+							)
+						)
+						.filter(linha =>
+							Option.fromNullable(linha.cells[3])
+								.mapNullable(c =>
+									c.querySelector<HTMLSpanElement>('.infraEventoPrazoParte')
+								)
+								.mapNullable(el => el.dataset.parte)
+								.exists(parte => /^(AUTOR|REU|MPF)$/.test(parte))
+						)
+			)(maybeNumeroEventoDecisaoTerminativa)(maybeReReferenteDecisao).getOrElse(
+				[]
+			);
+
+			if (eventosIntimacao.length > 0) {
+				type InformacaoFechamentoIntimacao = {
+					numero: number;
+					data: Date;
+					descricao: string;
+				};
+				const reTooltip = /^return infraTooltipMostrar\('([^']+)','Informações do Evento',1000\);$/;
+				const informacoesFechamentoIntimacoes = array.mapOption(
+					eventosIntimacao,
+					evento =>
+						Option.fromNullable(evento.cells[1])
+							.mapNullable(c => c.querySelector('a[onmouseover]'))
+							.mapNullable(lupa => lupa.getAttribute('onmouseover'))
+							.mapNullable(c => c.match(reTooltip))
+							.map(m => m[1])
+							.map(tooltip => {
+								const div = this.doc.createElement('div');
+								div.innerHTML = tooltip;
+								return array.mapOption(
+									Array.from(div.querySelectorAll('font')),
+									texto =>
+										Option.fromNullable(texto.textContent).map(t => t.trim())
+								);
+							})
+							.chain(textos => {
+								const indice = textos.findIndex(
+									textoAtual =>
+										!!textoAtual && /^Fechamento do Prazo:$/.test(textoAtual)
+								);
+								if (indice === -1) return Option.none;
+
+								const data = ConversorDataHora.analisar(textos[indice + 1]);
+								const textoDescricao = textos[indice + 2];
+								return Option.fromNullable(
+									textoDescricao.match(/^(\d+) - (.+)$/)
+								)
+									.map(([, numero, descricao]) => ({
+										numero: Utils.parseDecimalInt(numero),
+										descricao,
+									}))
+									.map(({ numero, descricao }) => {
+										const dados: InformacaoFechamentoIntimacao = {
+											numero,
+											data,
+											descricao,
+										};
+										return dados;
+									});
+							})
+				);
+				if (informacoesFechamentoIntimacoes.length > 0) {
+					const fechamentoMaisRecente = informacoesFechamentoIntimacoes.reduce(
+						(anterior, atual) =>
+							anterior.numero > atual.numero ? anterior : atual
+					);
+					const eventosCorrespondentes = linhasEventos.filter(linha =>
+						optionTextoCelula(1)(linha)
+							.map(t => Utils.parseDecimalInt(t))
+							.exists(n => n === fechamentoMaisRecente.numero)
+					);
+					if (eventosCorrespondentes.length > 0) {
+						const eventoFechamentoMaisRecente = eventosCorrespondentes[0];
 						eventoFechamentoMaisRecente.classList.add('gmEventoDestacado');
 						if (fechamentoMaisRecente.descricao.match(reDecurso)) {
 							dadosTransito.dataDecurso = fechamentoMaisRecente.data;
@@ -277,7 +300,6 @@ export default class PaginaProcesso extends Pagina {
 				}
 			}
 		}
-
 		return dadosTransito;
 	}
 
@@ -747,4 +769,11 @@ function optionParent(selector: string, element?: Node): any {
 
 function optionText(elemento: Node) {
 	return Option.fromNullable(elemento.textContent);
+}
+
+function optionTextoCelula(indice: number) {
+	return (linha: HTMLTableRowElement) =>
+		Option.fromNullable(linha.cells[indice]).mapNullable(
+			celula => celula.textContent
+		);
 }
