@@ -1,8 +1,10 @@
+import * as Option from 'fp-ts/lib/Option';
+import * as array from 'fp-ts/lib/Array';
+
 import './PaginaProcesso.scss';
 import Acoes from '../Acoes';
 import BotaoAcao from '../BotaoAcao';
 import { ConversorData, ConversorDataHora } from '../Conversor';
-import { Maybe, just, nothing } from '../Maybe';
 import Pagina from './Pagina';
 import { PaginaListar, PaginaRedirecionamento } from './index';
 import * as Utils from '../Utils';
@@ -12,6 +14,7 @@ import {
 	RequisicaoListarAntiga,
 	RequisicaoListarNova,
 } from '../Requisicao';
+import { liftA3 } from 'fp-ts/lib/Apply';
 
 export default class PaginaProcesso extends Pagina {
 	private fecharAposPreparar = new Set();
@@ -20,42 +23,42 @@ export default class PaginaProcesso extends Pagina {
 	private requisicoesAPreparar: Set<number> = new Set();
 
 	obterAssuntos() {
-		const maybeTabela = this.queryMaybe<HTMLTableElement>(
+		const maybeTabela = this.queryOption<HTMLTableElement>(
 			'table[summary="Assuntos"]'
 		);
-		const linhas = maybeTabela
-			.toArray()
+		const linhas = array
+			.catOptions([maybeTabela])
 			.flatMap(tabela => Array.from(tabela.rows).filter((_, i) => i > 0));
 		const maybeAssuntos = linhas.map(linha =>
-			Maybe.fromNullable(linha.cells[0]).chainNullable(c => c.textContent)
+			Option.fromNullable(linha.cells[0]).mapNullable(c => c.textContent)
 		);
-		const assuntos = Maybe.catMaybes(maybeAssuntos);
+		const assuntos = array.catOptions(maybeAssuntos);
 		return assuntos;
 	}
 
 	obterAutor(link: HTMLAnchorElement) {
-		const maybeNome = maybeText(link);
-		const maybeCelula = maybeParent<HTMLTableCellElement>('td', link);
-		const maybeCpfCnpj = this.queryMaybe<HTMLSpanElement>(
+		const maybeNome = optionText(link);
+		const maybeCelula = optionParent<HTMLTableCellElement>('td', link);
+		const maybeCpfCnpj = this.queryOption<HTMLSpanElement>(
 			'span[id^="spnCpfParteAutor"]'
 		)
-			.chainNullable(c => c.textContent)
+			.mapNullable(c => c.textContent)
 			.map(t => t.replace(/\D/g, ''));
 
-		return Maybe.sequence([maybeNome, maybeCelula, maybeCpfCnpj]).map(
-			([nome, celula, cpfCnpj]) => {
+		return liftA3(Option.option)(
+			(nome: string) => (celula: HTMLTableCellElement) => (cpfCnpj: string) => {
 				const oabAdvogados = this.queryAll<HTMLAnchorElement>(
 					'a',
 					celula
 				).filter(oab =>
-					Maybe.fromNullable(oab.getAttribute('onmouseover')).maybe(
+					Option.fromNullable(oab.getAttribute('onmouseover')).fold(
 						false,
 						texto => /ADVOGADO/.test(texto)
 					)
 				);
-				const advogados = Maybe.catMaybes(
+				const advogados = array.catOptions(
 					oabAdvogados.map(oab =>
-						Maybe.fromNullable(oab.previousElementSibling).chainNullable(
+						Option.fromNullable(oab.previousElementSibling).mapNullable(
 							el => el.textContent
 						)
 					)
@@ -67,13 +70,13 @@ export default class PaginaProcesso extends Pagina {
 				};
 				return dadosAutor;
 			}
-		);
+		)(maybeNome)(maybeCelula)(maybeCpfCnpj);
 	}
 
 	obterAutores() {
 		const links = this.queryAll<HTMLAnchorElement>('a[data-parte="AUTOR"]');
 		const maybeDadosAutores = links.map(link => this.obterAutor(link));
-		const dadosAutores = Maybe.catMaybes(maybeDadosAutores);
+		const dadosAutores = array.catOptions(maybeDadosAutores);
 		return dadosAutores;
 	}
 
@@ -85,18 +88,18 @@ export default class PaginaProcesso extends Pagina {
 		return this.destacarDocumentosPorTipo('CALC');
 	}
 
-	obterContratos() {
-		const contratos = this.destacarDocumentosPorTipo('CONHON');
+	async obterContratos() {
+		const contratos = await this.destacarDocumentosPorTipo('CONHON');
 		if (contratos.length > 0) return contratos;
-		const outros = this.destacarDocumentosPorMemo(/contrato|honor/i);
-		const procuracoes = this.destacarDocumentosPorTipo('PROC');
+		const outros = await this.destacarDocumentosPorMemo(/contrato|honor/i);
+		const procuracoes = await this.destacarDocumentosPorTipo('PROC');
 		return (<DadosEvento[]>[]).concat(outros, procuracoes);
 	}
 
-	obterHonorarios() {
+	async obterHonorarios() {
 		return (<DadosEvento[]>[]).concat(
-			this.destacarDocumentosPorTipo('SOLPGTOHON'),
-			this.destacarDocumentosPorTipo('PGTOPERITO')
+			await this.destacarDocumentosPorTipo('SOLPGTOHON'),
+			await this.destacarDocumentosPorTipo('PGTOPERITO')
 		);
 	}
 
@@ -105,9 +108,9 @@ export default class PaginaProcesso extends Pagina {
 	}
 
 	obterJusticaGratuita() {
-		return this.queryMaybe('#lnkJusticaGratuita')
-			.chainNullable(l => l.textContent)
-			.maybe('???', t => t);
+		return this.queryOption('#lnkJusticaGratuita')
+			.mapNullable(l => l.textContent)
+			.getOrElse('???');
 	}
 
 	async obterLinkListar() {
@@ -131,8 +134,8 @@ export default class PaginaProcesso extends Pagina {
 
 	obterReus() {
 		return this.queryAll('[id^="spnNomeParteReu"]')
-			.map(maybeText)
-			.flatMap(maybe => maybe.toArray());
+			.map(optionText)
+			.flatMap(option => option.fold([], x => [x]));
 	}
 
 	obterSentencas() {
@@ -143,7 +146,7 @@ export default class PaginaProcesso extends Pagina {
 		return this.query<HTMLTableElement>('#tblEventos');
 	}
 
-	get transito() {
+	async obterTransito() {
 		const reDecisoesTerminativas = /(^(Julgamento|Sentença))|Voto|Recurso Extraordinário Inadmitido|Pedido de Uniformização para a Turma Nacional - Inadmitido/;
 		const reDecurso = /CIÊNCIA, COM RENÚNCIA AO PRAZO|Decurso de Prazo/;
 		const reTransito = /Trânsito em Julgado/;
@@ -426,24 +429,24 @@ export default class PaginaProcesso extends Pagina {
 		frag.appendChild(this.doc.createElement('br'));
 
 		const informacoesAdicionais = await this.obterInformacoesAdicionais();
-		const infoParent = await Maybe.fromNullable(
+		const infoParent = await Option.fromNullable(
 			informacoesAdicionais.parentElement
-		).maybe(
+		).fold(
 			Promise.reject(new Error('Informações adicionais não possui ancestral.')),
 			x => Promise.resolve(x)
 		);
 
 		infoParent.insertBefore(frag, informacoesAdicionais.nextSibling);
 
-		const ultimoEvento = await Maybe.fromNullable(
+		const ultimoEvento = await Option.fromNullable(
 			(await this.obterTabelaEventos()).tBodies[0]
 		)
-			.chainNullable(b => b.rows[0])
-			.chainNullable(r => r.cells[1])
-			.chainNullable(c => c.textContent)
+			.mapNullable(b => b.rows[0])
+			.mapNullable(r => r.cells[1])
+			.mapNullable(c => c.textContent)
 			.map(t => Utils.parseDecimalInt(t.trim()))
-			.chain(n => (isNaN(n) ? nothing() : just(n)))
-			.maybe(
+			.chain(n => (isNaN(n) ? Option.none : Option.some(n)))
+			.fold(
 				Promise.reject(
 					new Error('Não foi possível localizar o último evento do processo.')
 				),
@@ -457,84 +460,84 @@ export default class PaginaProcesso extends Pagina {
 		}
 	}
 
-	destacarDocumentos(
+	async destacarDocumentos(
 		linksDocumentosLinha: (linha: HTMLTableRowElement) => HTMLAnchorElement[]
 	) {
-		return Array.from(this.tabelaEventos.tBodies)
-			.map(tbody => Array.from(tbody.rows))
-			.flatten()
-			.reduce((dadosEventos: DadosEvento[], linha) => {
-				const documentos = linksDocumentosLinha(linha).reduce(
-					(documentos: Documento[], link) => {
-						const match = (texto => texto && texto.match(/^(.*?)(\d+)$/))(
-							link.textContent
-						);
-						if (match) {
-							const [nome, tipo, ordem] = match;
-							documentos.push({
-								ordem: Utils.parseDecimalInt(ordem),
-								nome,
-								tipo,
-							});
-						}
-						return documentos;
-					},
-					[]
-				);
+		return array.catOptions(
+			Array.from((await this.obterTabelaEventos()).tBodies)
+				.map(tbody => Array.from(tbody.rows))
+				.flatten()
+				.map((linha): Option.Option<DadosEvento> => {
+					const documentos = array.catOptions(
+						linksDocumentosLinha(linha).map(link =>
+							Option.fromNullable(link.textContent)
+								.mapNullable(texto => texto.match(/^(.*?)(\d+)$/))
+								.map(([nome, tipo, ordem]) => ({
+									ordem: Utils.parseDecimalInt(ordem),
+									nome,
+									tipo,
+								}))
+						)
+					);
 
-				if (documentos.length > 0) {
-					linha.classList.add('gmEventoDestacado');
+					if (documentos.length > 0) {
+						linha.classList.add('gmEventoDestacado');
 
-					const evento = Utils.safePipe(
-						linha.cells[1],
-						celula => celula.textContent,
-						texto => Utils.parseDecimalInt(texto)
-					);
-					const data = Utils.safePipe(
-						linha.cells[2],
-						celula => celula.textContent,
-						texto => ConversorDataHora.analisar(texto)
-					);
-					const descricao = Utils.safePipe(
-						linha.cells[3],
-						celula => celula.querySelector('label.infraEventoDescricao'),
-						label => label.textContent
-					);
-					if (evento && data && descricao) {
-						dadosEventos.push({ evento, data, descricao, documentos });
+						const optionEvento = Option.fromNullable(linha.cells[1])
+							.mapNullable(c => c.textContent)
+							.map(t => Utils.parseDecimalInt(t));
+						const optionData = Option.fromNullable(linha.cells[2])
+							.mapNullable(c => c.textContent)
+							.map(t => ConversorDataHora.analisar(t));
+						const optionDescricao = Option.fromNullable(linha.cells[3])
+							.mapNullable(c => c.querySelector('label.infraEventoDescricao'))
+							.mapNullable(c => c.textContent);
+
+						return liftA3(Option.option)(
+							(evento: number) => (data: Date) => (descricao: string) => ({
+								evento,
+								data,
+								descricao,
+								documentos,
+							})
+						)(optionEvento)(optionData)(optionDescricao);
+					} else {
+						return Option.none;
 					}
-				}
-				return dadosEventos;
-			}, []);
+				})
+		);
 	}
 
 	destacarDocumentosPorEvento(regularExpression: RegExp) {
 		return this.destacarDocumentos(linha => {
 			return [linha]
-				.filter(linha =>
-					Utils.safePipe(
-						linha.querySelector<HTMLTableCellElement>(
-							'td.infraEventoDescricao'
-						),
-						c => c.textContent,
-						t => regularExpression.test(t.trim())
+				.filter(l =>
+					Option.fromNullable(
+						l.querySelector<HTMLTableCellElement>('td.infraEventoDescricao')
 					)
+						.mapNullable(c => c.textContent)
+						.exists(t => regularExpression.test(t.trim()))
 				)
-				.flatMap(linha => this.queryAll('.infraLinkDocumento', linha));
+				.flatMap(l => this.queryAll('.infraLinkDocumento', l));
 		});
 	}
 
 	destacarDocumentosPorMemo(regularExpression: RegExp) {
-		return this.destacarDocumentos(linha => {
-			let memos = this.queryAll('.infraTextoTooltip', linha).filter(memo =>
-				Utils.safePipe(memo.textContent, texto => regularExpression.test(texto))
-			);
-			return memos
-				.flatMap(maybeParent<HTMLTableCellElement>('td'))
-				.flatMap(celula =>
-					maybe(celula.querySelector<HTMLAnchorElement>('.infraLinkDocumento'))
-				);
-		});
+		return this.destacarDocumentos(linha =>
+			array.catOptions(
+				this.queryAll('.infraTextoTooltip', linha)
+					.filter(memo =>
+						Option.some(memo)
+							.mapNullable(m => m.textContent)
+							.exists(t => regularExpression.test(t))
+					)
+					.map(el =>
+						optionParent<HTMLTableCellElement>('td', el).chain(celula =>
+							this.queryOption<HTMLAnchorElement>('.infraLinkDocumento', celula)
+						)
+					)
+			)
+		);
 	}
 
 	destacarDocumentosPorTipo(...abreviacoes: string[]) {
@@ -544,28 +547,29 @@ export default class PaginaProcesso extends Pagina {
 		return this.destacarDocumentos(linha =>
 			this.queryAll<HTMLAnchorElement>('.infraLinkDocumento', linha).filter(
 				link =>
-					Utils.safePipe(link.textContent, texto =>
+					Option.fromNullable(link.textContent).exists(texto =>
 						regularExpression.test(texto)
 					)
 			)
 		);
 	}
 
-	enviarDadosProcesso(janela, origem) {
-		const data = {
+	async enviarDadosProcesso(janela, origem) {
+		type Dados = { acao: Acoes.RESPOSTA_DADOS; dados: DadosProcesso };
+		const data: Dados = {
 			acao: Acoes.RESPOSTA_DADOS,
 			dados: {
-				assuntos: this.assuntos,
-				autores: this.autores,
-				autuacao: this.autuacao,
-				calculos: this.calculos,
-				contratos: this.contratos,
-				honorarios: this.honorarios,
-				justicaGratuita: this.justicaGratuita,
-				magistrado: this.magistrado,
-				reus: this.reus,
-				sentencas: this.sentencas,
-				transito: this.transito,
+				assuntos: this.obterAssuntos(),
+				autores: this.obterAutores(),
+				autuacao: await this.obterAutuacao(),
+				calculos: await this.obterCalculos(),
+				contratos: await this.obterContratos(),
+				honorarios: await this.obterHonorarios(),
+				justicaGratuita: this.obterJusticaGratuita(),
+				magistrado: await this.obterMagistrado(),
+				reus: this.obterReus(),
+				sentencas: await this.obterSentencas(),
+				transito: await this.obterTransito(),
 			},
 		};
 		janela.postMessage(JSON.stringify(data), origem);
@@ -708,7 +712,9 @@ export default class PaginaProcesso extends Pagina {
 					const numero = data.requisicao;
 					this.fecharJanelaRequisicao(numero);
 					const urlEditar = this.urlEditarRequisicoes.get(numero);
-					this.abrirJanelaEditarRequisicao(urlEditar, numero);
+					if (urlEditar) {
+						this.abrirJanelaEditarRequisicao(urlEditar, numero);
+					}
 				} else if (data.acao === Acoes.ABRIR_DOCUMENTO) {
 					this.abrirDocumento(data.evento, data.documento);
 				} else if (data.acao === Acoes.BUSCAR_DADOS) {
@@ -719,46 +725,26 @@ export default class PaginaProcesso extends Pagina {
 	}
 }
 
-function maybeParent<T extends HTMLElement = HTMLElement>(
+function optionParent<T extends HTMLElement = HTMLElement>(
 	selector: string,
 	element: Node
-): Maybe<T>;
-function maybeParent<T extends HTMLElement = HTMLElement>(
+): Option.Option<T>;
+function optionParent<T extends HTMLElement = HTMLElement>(
 	selector: string
-): { (element: Node): Maybe<T> };
-function maybeParent(selector: string, element?: Node): any {
+): { (element: Node): Option.Option<T> };
+function optionParent(selector: string, element?: Node): any {
 	if (element === undefined) {
 		return function(element) {
-			return maybeParent(selector, element);
+			return optionParent(selector, element);
 		};
 	}
 	let parent = element.parentElement;
 	while (parent !== null && !parent.matches(selector)) {
 		parent = parent.parentElement;
 	}
-	return parent === null ? nothing() : just(parent);
+	return parent === null ? Option.none : Option.some(parent);
 }
 
-function maybeText(elemento: Node) {
-	return Maybe.fromNullable(elemento.textContent);
-}
-
-function promiseParent<T extends HTMLElement = HTMLElement>(
-	element: Node,
-	selector: string
-) {
-	let parent = element.parentElement;
-	while (parent !== null && !parent.matches(selector)) {
-		parent = parent.parentElement;
-	}
-	return parent === null
-		? Promise.reject(new Error(`Ancestral não encontrado: ${selector}.`))
-		: Promise.resolve(<T>parent);
-}
-
-function promiseText(elemento: Node) {
-	const texto = elemento.textContent;
-	return texto
-		? Promise.resolve(texto)
-		: Promise.reject(new Error('Elemento não possui texto.'));
+function optionText(elemento: Node) {
+	return Option.fromNullable(elemento.textContent);
 }
