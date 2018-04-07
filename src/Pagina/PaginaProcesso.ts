@@ -668,17 +668,10 @@ export default class PaginaProcesso extends Pagina {
 				}
 			} else if (data.acao === Acoes.ABRIR_REQUISICAO) {
 				console.log('Pediram-me para abrir uma requisicao', data.requisicao);
-				if (data.requisicao.tipo === 'antiga') {
-					this.abrirJanelaRequisicao(
-						data.requisicao.urlConsultarAntiga,
-						data.requisicao.numero
-					);
-				} else if (data.requisicao.tipo === 'nova') {
-					this.abrirJanelaRequisicao(
-						data.requisicao.urlConsultar,
-						data.requisicao.numero
-					);
-				}
+				this.abrirJanelaRequisicao(
+					data.requisicao.urlConsultar,
+					data.requisicao.numero
+				);
 			} else if (data.acao === Acoes.EDITAR_REQUISICAO) {
 				const numero = data.requisicao;
 				this.fecharJanelaRequisicao(numero);

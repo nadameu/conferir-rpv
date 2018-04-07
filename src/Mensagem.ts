@@ -1,5 +1,5 @@
 import Acoes from './Acoes';
-import { RequisicaoListar } from './Requisicao/RequisicaoListar';
+import RequisicaoListar from './Requisicao/RequisicaoListar';
 
 interface MensagemAbrirDocumento {
 	acao: Acoes.ABRIR_DOCUMENTO;
@@ -33,7 +33,6 @@ interface MensagemRespostaJanelaAberta {
 
 interface MensagemVerificarJanela {
 	acao: Acoes.VERIFICAR_JANELA;
-	requisicao: number;
 }
 
 type Mensagem =
@@ -43,6 +42,5 @@ type Mensagem =
 	| MensagemEditarRequisicao
 	| MensagemOrdemConfirmada
 	| MensagemRespostaJanelaAberta
-	| MensagemVerificarJanela
-	| never;
+	| MensagemVerificarJanela;
 export default Mensagem;
