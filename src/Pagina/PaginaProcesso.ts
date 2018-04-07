@@ -8,14 +8,9 @@ import BotaoAcao from '../BotaoAcao';
 import { ConversorData, ConversorDataHora } from '../Conversor';
 import Mensagem from '../Mensagem';
 import Pagina from './Pagina';
-import { PaginaListar, PaginaRedirecionamento } from './index';
+import { PaginaListar } from './index';
 import * as Utils from '../Utils';
 import * as XHR from '../XHR';
-import {
-	RequisicaoListar,
-	RequisicaoListarAntiga,
-	RequisicaoListarNova,
-} from '../Requisicao';
 
 export default class PaginaProcesso extends Pagina {
 	private janelasDependentes: Map<string, Window> = new Map();
@@ -359,126 +354,83 @@ export default class PaginaProcesso extends Pagina {
 		);
 	}
 
-	async adicionarBotao() {
-		type DadosJanelaRequisicao = {
-			requisicao: number;
-			url: string;
-		};
-		const filtrarRequisicoes = async (
-			listaRequisicoes: RequisicaoListar[],
-			casoAntiga: (
-				_: RequisicaoListarAntiga
-			) => DadosJanelaRequisicao | Promise<DadosJanelaRequisicao>,
-			casoNova: (
-				_: RequisicaoListarNova
-			) => DadosJanelaRequisicao | Promise<DadosJanelaRequisicao>
-		): Promise<void> => {
-			const requisicoesAntigas = listaRequisicoes.filter(
-				(requisicao): requisicao is RequisicaoListarAntiga =>
-					requisicao.tipo === 'antiga' && requisicao.status === 'Digitada'
-			);
-			const requisicoesNovas = listaRequisicoes.filter(
-				(requisicao): requisicao is RequisicaoListarNova =>
-					requisicao.tipo === 'nova' && requisicao.status === 'Finalizada'
-			);
-			if (requisicoesAntigas.length + requisicoesNovas.length !== 1) {
-				this.abrirJanelaListar();
-				return;
-			}
-			let dadosJanelaRequisicao: DadosJanelaRequisicao;
-			if (requisicoesAntigas.length === 1) {
-				dadosJanelaRequisicao = await casoAntiga(requisicoesAntigas[0]);
-			} else {
-				dadosJanelaRequisicao = await casoNova(requisicoesNovas[0]);
-			}
-			const { requisicao, url } = dadosJanelaRequisicao;
-			this.abrirJanelaRequisicao(url, requisicao);
-		};
-
-		const textoBotao = 'Conferir ofício requisitório';
-		const botao = BotaoAcao.criar(textoBotao, evt => {
-			evt.preventDefault();
-			evt.stopPropagation();
-			Promise.resolve()
-				.then(() => {
-					botao.textContent = 'Aguarde, carregando...';
-				})
-				.then(async () => {
-					const docListar = await XHR.buscarDocumento(
-						(await this.obterLinkListar()).href
-					);
-					const paginaListar = new PaginaListar(docListar);
-					const listaRequisicoes = await paginaListar.obterRequisicoes();
-					return filtrarRequisicoes(
-						listaRequisicoes,
-						async requisicao => {
-							const docRedirecionamento = await XHR.buscarDocumentoExterno(
-								requisicao.urlConsultarAntiga
-							);
-							const paginaRedirecionamento = new PaginaRedirecionamento(
-								docRedirecionamento
-							);
-							const urlRedirecionamento = await paginaRedirecionamento.getUrlRedirecionamento();
-							return {
-								url: urlRedirecionamento,
-								requisicao: requisicao.numero,
-							};
-						},
-						requisicao => {
-							this.urlEditarRequisicoes.set(
-								requisicao.numero,
-								requisicao.urlEditar
-							);
-							return {
-								url: requisicao.urlConsultar,
-								requisicao: requisicao.numero,
-							};
-						}
-					);
-				})
-				.then(() => {
-					botao.textContent = textoBotao;
-				})
-				.catch(err => {
-					console.error(err);
-				});
-		});
-
-		const frag = this.doc.createDocumentFragment();
-		frag.appendChild(this.doc.createElement('br'));
-		frag.appendChild(botao);
-		frag.appendChild(this.doc.createElement('br'));
-
-		const informacoesAdicionais = await this.obterInformacoesAdicionais();
-		const infoParent = await Option.fromNullable(
-			informacoesAdicionais.parentElement
-		).fold(
-			Promise.reject(new Error('Informações adicionais não possui ancestral.')),
-			x => Promise.resolve(x)
+	async consultarRequisicoesFinalizadas() {
+		const link = await this.obterLinkListar();
+		const docListar = await XHR.buscarDocumento(link.href);
+		const paginaListar = new PaginaListar(docListar);
+		const listaRequisicoes = await paginaListar.obterRequisicoes();
+		const requisicoesFinalizadas = listaRequisicoes.filter(
+			req => req.status === 'Finalizada'
 		);
-
-		infoParent.insertBefore(frag, informacoesAdicionais.nextSibling);
-
-		const ultimoEvento = await Option.fromNullable(
-			(await this.obterTabelaEventos()).tBodies[0]
-		)
-			.mapNullable(b => b.rows[0])
-			.mapNullable(r => r.cells[1])
-			.mapNullable(c => c.textContent)
-			.map(t => Utils.parseDecimalInt(t.trim()))
-			.chain(n => (isNaN(n) ? Option.none : Option.some(n)))
-			.fold(
-				Promise.reject(
-					new Error('Não foi possível localizar o último evento do processo.')
-				),
-				x => Promise.resolve(x)
+		if (requisicoesFinalizadas.length === 1) {
+			const requisicao = requisicoesFinalizadas[0];
+			this.urlEditarRequisicoes.set(requisicao.numero, requisicao.urlEditar);
+			return this.abrirJanelaRequisicao(
+				requisicao.urlConsultar,
+				requisicao.numero
 			);
-		if (ultimoEvento > 100) {
-			botao.insertAdjacentHTML(
-				'afterend',
-				' <div style="display: inline-block;"><span class="gmTextoDestacado">Processo possui mais de 100 eventos.</span> &mdash; <a href="#" onclick="event.preventDefault(); event.stopPropagation(); this.parentElement.style.display = \'none\'; carregarTodasPaginas(); return false;">Carregar todos os eventos</a></div>'
-			);
+		} else {
+			return this.abrirJanelaListar();
 		}
+	}
+
+	adicionarBotao() {
+		return this.obterInformacoesAdicionais()
+			.then(informacoesAdicionais => {
+				const infoParent = informacoesAdicionais.parentElement;
+				if (infoParent == null) {
+					throw new Error('Informações adicionais não possui ancestral.');
+				}
+				return (conteudo: Node) => {
+					infoParent.insertBefore(conteudo, informacoesAdicionais.nextSibling);
+				};
+			})
+			.then(inserirAposInformacoesAdicionais => {
+				const textoBotao = 'Conferir ofício requisitório';
+				const botao = BotaoAcao.criar(textoBotao, evt => {
+					evt.preventDefault();
+					evt.stopPropagation();
+					(async () => {
+						botao.textContent = 'Aguarde, carregando...';
+						await this.consultarRequisicoesFinalizadas();
+						botao.textContent = textoBotao;
+					})().catch(err => {
+						console.error(err);
+					});
+				});
+
+				const frag = this.doc.createDocumentFragment();
+				frag.appendChild(this.doc.createElement('br'));
+				frag.appendChild(botao);
+				frag.appendChild(this.doc.createElement('br'));
+
+				inserirAposInformacoesAdicionais(frag);
+				return Promise.all([botao, this.obterTabelaEventos()]);
+			})
+			.then(([botao, tabelaEventos]) => {
+				try {
+					const ultimoEvento = Utils.parseDecimalInt(
+						//@ts-ignore
+						tabelaEventos.tBodies[0].rows[0].cells[1].textContent.trim()
+					);
+					if (isNaN(ultimoEvento)) throw new Error('NaN.');
+					return { botao, ultimoEvento };
+				} catch (err) {
+					throw new Error(
+						`Não foi possível localizar o último evento do processo.: ${
+							err.message
+						}`
+					);
+				}
+			})
+			.then(({ botao, ultimoEvento }) => {
+				if (ultimoEvento > 100) {
+					botao.insertAdjacentHTML(
+						'afterend',
+						' <div style="display: inline-block;"><span class="gmTextoDestacado">Processo possui mais de 100 eventos.</span> &mdash; <a href="#" onclick="event.preventDefault(); event.stopPropagation(); this.parentElement.style.display = \'none\'; carregarTodasPaginas(); return false;">Carregar todos os eventos</a></div>'
+					);
+				}
+			});
 	}
 
 	async destacarDocumentos(

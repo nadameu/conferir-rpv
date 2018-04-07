@@ -2,7 +2,6 @@ import Acoes from '../Acoes';
 import BotaoAcao from '../BotaoAcao';
 import Mensagem from '../Mensagem';
 import Pagina from './Pagina';
-import { RequisicaoListar } from '../Requisicao/RequisicaoListar';
 import parseDecimalInt from '../Utils/parseDecimalInt';
 import { lefts, rights } from '../Utils/promises';
 
