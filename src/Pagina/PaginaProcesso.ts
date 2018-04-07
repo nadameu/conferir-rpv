@@ -6,6 +6,7 @@ import './PaginaProcesso.scss';
 import Acoes from '../Acoes';
 import BotaoAcao from '../BotaoAcao';
 import { ConversorData, ConversorDataHora } from '../Conversor';
+import Mensagem from '../Mensagem';
 import Pagina from './Pagina';
 import { PaginaListar, PaginaRedirecionamento } from './index';
 import * as Utils from '../Utils';
@@ -17,10 +18,8 @@ import {
 } from '../Requisicao';
 
 export default class PaginaProcesso extends Pagina {
-	private fecharAposPreparar = new Set();
 	private janelasDependentes: Map<string, Window> = new Map();
 	urlEditarRequisicoes: Map<number, string> = new Map();
-	private requisicoesAPreparar: Set<number> = new Set();
 
 	obterAssuntos() {
 		const maybeTabela = this.queryOption<HTMLTableElement>(
@@ -329,7 +328,7 @@ export default class PaginaProcesso extends Pagina {
 
 	abrirJanelaEditarRequisicao(
 		url: string,
-		numero: string,
+		numero: number,
 		abrirEmJanela = false
 	) {
 		this.abrirJanela(url, `editar-requisicao${numero}`, abrirEmJanela);
@@ -598,26 +597,14 @@ export default class PaginaProcesso extends Pagina {
 	}
 
 	enviarRespostaJanelaAberta(janela: Window, origem: string) {
-		const data = {
+		const data: Mensagem = {
 			acao: Acoes.RESPOSTA_JANELA_ABERTA,
 		};
 		this.enviarSolicitacao(janela, origem, data);
 	}
 
-	enviarSolicitacao(janela: Window, origem: string, dados: Solicitacao) {
+	enviarSolicitacao(janela: Window, origem: string, dados: Mensagem) {
 		janela.postMessage(JSON.stringify(dados), origem);
-	}
-
-	enviarSolicitacaoPrepararIntimacao(
-		janela: Window,
-		origem: string,
-		requisicao: number
-	) {
-		const data = {
-			acao: Acoes.PREPARAR_INTIMACAO_ANTIGA,
-			requisicao: requisicao,
-		};
-		this.enviarSolicitacao(janela, origem, data);
 	}
 
 	fecharJanela(nome: string) {
@@ -673,86 +660,37 @@ export default class PaginaProcesso extends Pagina {
 
 	onMensagemRecebida(evt: MessageEvent) {
 		console.info('Mensagem recebida', evt);
-		if (
-			evt.origin === 'http://sap.trf4.gov.br' ||
-			evt.origin === this.doc.location.origin
-		) {
-			const data: Solicitacao = JSON.parse(evt.data);
-			if (evt.origin === 'http://sap.trf4.gov.br') {
-				if (data.acao === Acoes.BUSCAR_DADOS) {
-					if (evt.source) {
-						this.enviarDadosProcesso(evt.source, evt.origin);
-					}
-				} else if (data.acao === Acoes.ABRIR_DOCUMENTO) {
-					this.abrirDocumento(data.evento, data.documento);
-				} else if (data.acao === Acoes.EDITAR_REQUISICAO_ANTIGA) {
-					this.abrirJanelaEditarRequisicao(
-						data.urlEditarAntiga,
-						data.requisicao
-					);
-				} else if (data.acao === Acoes.PREPARAR_INTIMACAO_ANTIGA) {
-					this.requisicoesAPreparar.add(data.requisicao);
-					if (data.fecharProcesso) {
-						this.fecharAposPreparar.add(data.requisicao);
-					}
-					this.abrirJanelaEditarRequisicao(
-						data.urlEditarAntiga,
-						data.requisicao
-					);
-				} else if (data.acao === Acoes.VERIFICAR_JANELA) {
-					if (this.requisicoesAPreparar.has(data.requisicao)) {
-						if (evt.source) {
-							this.enviarSolicitacaoPrepararIntimacao(
-								evt.source,
-								evt.origin,
-								data.requisicao
-							);
-						}
-					}
-				} else if (data.acao === Acoes.ORDEM_CONFIRMADA) {
-					if (
-						data.ordem === Acoes.PREPARAR_INTIMACAO_ANTIGA &&
-						this.requisicoesAPreparar.has(data.requisicao)
-					) {
-						this.requisicoesAPreparar.delete(data.requisicao);
-					}
-				} else if (data.acao === Acoes.REQUISICAO_ANTIGA_PREPARADA) {
-					this.fecharJanelaRequisicao(data.requisicao);
-					if (this.fecharAposPreparar.has(data.requisicao)) {
-						this.fecharJanelaProcesso();
-					}
+		if (evt.origin === this.doc.location.origin) {
+			const data: Mensagem = JSON.parse(evt.data);
+			if (data.acao === Acoes.VERIFICAR_JANELA) {
+				if (evt.source) {
+					this.enviarRespostaJanelaAberta(evt.source, evt.origin);
 				}
-			} else if (evt.origin === this.doc.location.origin) {
-				if (data.acao === Acoes.VERIFICAR_JANELA) {
-					if (evt.source) {
-						this.enviarRespostaJanelaAberta(evt.source, evt.origin);
-					}
-				} else if (data.acao === Acoes.ABRIR_REQUISICAO) {
-					console.log('Pediram-me para abrir uma requisicao', data.requisicao);
-					if (data.requisicao.tipo === 'antiga') {
-						this.abrirJanelaRequisicao(
-							data.requisicao.urlConsultarAntiga,
-							data.requisicao.numero
-						);
-					} else if (data.requisicao.tipo === 'nova') {
-						this.abrirJanelaRequisicao(
-							data.requisicao.urlConsultar,
-							data.requisicao.numero
-						);
-					}
-				} else if (data.acao === Acoes.EDITAR_REQUISICAO) {
-					const numero = data.requisicao;
-					this.fecharJanelaRequisicao(numero);
-					const urlEditar = this.urlEditarRequisicoes.get(numero);
-					if (urlEditar) {
-						this.abrirJanelaEditarRequisicao(urlEditar, numero);
-					}
-				} else if (data.acao === Acoes.ABRIR_DOCUMENTO) {
-					this.abrirDocumento(data.evento, data.documento);
-				} else if (data.acao === Acoes.BUSCAR_DADOS) {
-					if (evt.source) {
-						this.enviarDadosProcesso(evt.source, evt.origin);
-					}
+			} else if (data.acao === Acoes.ABRIR_REQUISICAO) {
+				console.log('Pediram-me para abrir uma requisicao', data.requisicao);
+				if (data.requisicao.tipo === 'antiga') {
+					this.abrirJanelaRequisicao(
+						data.requisicao.urlConsultarAntiga,
+						data.requisicao.numero
+					);
+				} else if (data.requisicao.tipo === 'nova') {
+					this.abrirJanelaRequisicao(
+						data.requisicao.urlConsultar,
+						data.requisicao.numero
+					);
+				}
+			} else if (data.acao === Acoes.EDITAR_REQUISICAO) {
+				const numero = data.requisicao;
+				this.fecharJanelaRequisicao(numero);
+				const urlEditar = this.urlEditarRequisicoes.get(numero);
+				if (urlEditar) {
+					this.abrirJanelaEditarRequisicao(urlEditar, numero);
+				}
+			} else if (data.acao === Acoes.ABRIR_DOCUMENTO) {
+				this.abrirDocumento(data.evento, data.documento);
+			} else if (data.acao === Acoes.BUSCAR_DADOS) {
+				if (evt.source) {
+					this.enviarDadosProcesso(evt.source, evt.origin);
 				}
 			}
 		}

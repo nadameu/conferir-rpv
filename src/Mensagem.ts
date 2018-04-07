@@ -1,25 +1,48 @@
 import Acoes from './Acoes';
 import { RequisicaoListar } from './Requisicao/RequisicaoListar';
-// ABRIR_DOCUMENTO = 'abrirDocumento',
-// ABRIR_REQUISICAO = 'abrirRequisicao',
-// BUSCAR_DADOS = 'buscarDados',
-// EDITAR_REQUISICAO_ANTIGA = 'editarRequisicaoAntiga',
-// EDITAR_REQUISICAO = 'editarRequisicao',
-// ORDEM_CONFIRMADA = 'ordemConfirmada',
-// PREPARAR_INTIMACAO_ANTIGA = 'prepararIntimacaoAntiga',
-// REQUISICAO_ANTIGA_PREPARADA = 'requisicaoAntigaPreparada',
-// RESPOSTA_DADOS = 'respostaDados',
-// RESPOSTA_JANELA_ABERTA = 'respostaJanelaAberta',
-// VERIFICAR_JANELA = 'verificarJanela',
+
+interface MensagemAbrirDocumento {
+	acao: Acoes.ABRIR_DOCUMENTO;
+	evento: number;
+	documento: number;
+}
 
 interface MensagemAbrirRequisicao {
 	acao: Acoes.ABRIR_REQUISICAO;
 	requisicao: RequisicaoListar;
 }
 
-interface MensagemVerificarJanela {
-	acao: Acoes.VERIFICAR_JANELA;
+interface MensagemBuscarDados {
+	acao: Acoes.BUSCAR_DADOS;
 }
 
-type Mensagem = MensagemAbrirRequisicao | MensagemVerificarJanela;
+interface MensagemEditarRequisicao {
+	acao: Acoes.EDITAR_REQUISICAO;
+	requisicao: number;
+}
+
+interface MensagemOrdemConfirmada {
+	acao: Acoes.ORDEM_CONFIRMADA;
+	ordem: Acoes;
+	requisicao: number;
+}
+
+interface MensagemRespostaJanelaAberta {
+	acao: Acoes.RESPOSTA_JANELA_ABERTA;
+}
+
+interface MensagemVerificarJanela {
+	acao: Acoes.VERIFICAR_JANELA;
+	requisicao: number;
+}
+
+type Mensagem =
+	| MensagemAbrirDocumento
+	| MensagemAbrirRequisicao
+	| MensagemBuscarDados
+	| MensagemEditarRequisicao
+	| MensagemOrdemConfirmada
+	| MensagemRespostaJanelaAberta
+	| MensagemVerificarJanela
+	| never;
 export default Mensagem;

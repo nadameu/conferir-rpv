@@ -49,5 +49,3 @@ interface Documento {
 interface Evento extends EventoI {
 	documentos: Map<number, Documento>;
 }
-
-type Solicitacao = never;
