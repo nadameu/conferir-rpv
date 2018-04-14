@@ -95,23 +95,11 @@ export default class PaginaListar extends Pagina {
 			linha,
 			numero,
 			status,
-			...(urls.every(url => url.searchParams.has('numRequis'))
-				? {
-						tipo: 'antiga',
-						urlConsultarAntiga: await obterHref('strAcao', undefined),
-						urlEditarAntiga: await obterHref('strAcao', 'editar'),
-				  }
-				: {
-						tipo: 'nova',
-						urlConsultar: await obterHref(
-							'acao',
-							'oficio_requisitorio_visualizar'
-						),
-						urlEditar: await obterHref(
-							'acao',
-							'oficio_requisitorio_requisicoes_editar'
-						),
-				  }),
+			urlConsultar: await obterHref('acao', 'oficio_requisitorio_visualizar'),
+			urlEditar: await obterHref(
+				'acao',
+				'oficio_requisitorio_requisicoes_editar'
+			),
 		};
 		return req;
 	}
