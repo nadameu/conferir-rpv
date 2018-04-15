@@ -31,9 +31,13 @@ export default class PaginaProcesso extends Pagina {
 	obterAutor(link: HTMLAnchorElement) {
 		const maybeNome = optionText(link);
 		const maybeCelula = optionParent<HTMLTableCellElement>('td', link);
-		const maybeCpfCnpj = this.queryOption<HTMLSpanElement>(
-			'span[id^="spnCpfParteAutor"]'
-		)
+		const maybeCpfCnpj = maybeCelula
+			.chain(celula =>
+				this.queryOption<HTMLSpanElement>(
+					'span[id^="spnCpfParteAutor"]',
+					celula
+				)
+			)
 			.mapNullable(c => c.textContent)
 			.map(t => t.replace(/\D/g, ''));
 
