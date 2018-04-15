@@ -20,7 +20,7 @@ const defaultConfig: webpack.Configuration = {
 			{
 				test: /\.(tsx?)|(js)$/,
 				exclude: /node_modules/,
-				loader: 'ts-loader',
+				loader: 'babel-loader',
 			},
 			{
 				test: /\.s?css$/,
