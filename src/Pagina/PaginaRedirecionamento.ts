@@ -1,10 +1,6 @@
 import Pagina from './Pagina';
 
 export default class PaginaRedirecionamento extends Pagina {
-	constructor(doc: Document) {
-		super(doc);
-	}
-
 	async adicionarAlteracoes() {}
 
 	async getUrlRedirecionamento() {

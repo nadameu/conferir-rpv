@@ -22,10 +22,6 @@ import * as Option from 'fp-ts/lib/Option';
 import Mensagem from '../Mensagem';
 
 export default class PaginaRequisicao extends Pagina {
-	constructor(doc: Document) {
-		super(doc);
-	}
-
 	private _requisicao?: Requisicao;
 	async obterRequisicao() {
 		if (!this._requisicao) {
@@ -143,7 +139,6 @@ export default class PaginaRequisicao extends Pagina {
 				n => Promise.resolve(n)
 			);
 		requisicao.numero = numero;
-		// requisicao.urlEditarAntiga = linkEditar.href;
 
 		const tabela = await this.query<HTMLTableElement>(
 			'#divInfraAreaTabela > table:nth-child(2)'

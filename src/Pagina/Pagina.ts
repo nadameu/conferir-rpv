@@ -1,7 +1,10 @@
 import * as Option from 'fp-ts/lib/Option';
 
 export default abstract class Pagina {
-	constructor(protected readonly doc: Document) {}
+	protected doc: Document;
+	constructor(doc: Document) {
+		this.doc = doc;
+	}
 
 	abstract adicionarAlteracoes(): Promise<any>;
 

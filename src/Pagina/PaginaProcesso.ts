@@ -297,10 +297,6 @@ export default class PaginaProcesso extends Pagina {
 		return dadosTransito;
 	}
 
-	constructor(doc: Document) {
-		super(doc);
-	}
-
 	async abrirDocumento(evento: number, documento: number) {
 		const celula = await this.query<HTMLTableCellElement>(
 			`#tdEvento${evento}Doc${documento}`
@@ -568,9 +564,9 @@ export default class PaginaProcesso extends Pagina {
 	}
 
 	fecharJanelasDependentes() {
-		for (let nome of this.janelasDependentes.keys()) {
+		Array.from(this.janelasDependentes.keys()).forEach(nome => {
 			this.fecharJanela(nome);
-		}
+		});
 	}
 
 	fecharJanelaProcesso() {

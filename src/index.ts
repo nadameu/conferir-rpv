@@ -1,3 +1,4 @@
+import 'babel-polyfill';
 import { analisar } from './Pagina/PaginaFactory';
 
 async function main() {

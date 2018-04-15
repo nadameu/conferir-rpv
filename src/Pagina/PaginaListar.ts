@@ -58,10 +58,6 @@ const makeObterHref = (urls: URL[]) => (param: string, expected?: string) => {
 };
 
 export default class PaginaListar extends Pagina {
-	constructor(doc: Document) {
-		super(doc);
-	}
-
 	async adicionarAlteracoes() {
 		const win = this.doc.defaultView;
 		const opener = win.opener;
