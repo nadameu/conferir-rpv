@@ -1,9 +1,15 @@
 export default class Requisicao {
+	codigoAssunto: string;
+	dataAjuizamento: Date;
+	dataTransito: Date;
 	especie: string;
 	linha: HTMLTableRowElement;
 	numero: number;
-	beneficiarios = [];
-	honorarios = [];
+	requerido: string;
+	status: string;
+	valorTotalRequisitado: number;
+	beneficiarios: DadosBeneficiario[] = [];
+	honorarios: DadosHonorario[] = [];
 
 	get isPrecatorio(): boolean {
 		if (this.especie === undefined) {

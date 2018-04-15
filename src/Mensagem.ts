@@ -1,5 +1,4 @@
 import Acoes from './Acoes';
-import RequisicaoListar from './Requisicao/RequisicaoListar';
 
 interface MensagemAbrirDocumento {
 	acao: Acoes.ABRIR_DOCUMENTO;

@@ -15,8 +15,39 @@ interface DadosAutor {
 	advogados: string[];
 }
 
+type DadosBeneficiario = DadosPagamento & {
+	anoCorrente: Date;
+	cpfCnpj: string;
+	irpf: boolean;
+	mesesAnterior: number;
+	mesesCorrente: number;
+	pss: { semIncidencia: boolean };
+	ordinal: number;
+	valorAnterior: number;
+	valorCorrente: number;
+};
+
 interface DadosEvento extends EventoI {
 	documentos: Documento[];
+}
+
+type DadosHonorario = DadosPagamento & {
+	beneficiario: string;
+	tipoHonorario:
+		| 'Honorários Contratuais'
+		| 'Devolução à Seção Judiciária'
+		| 'Honorários de Sucumbência';
+};
+
+interface DadosPagamento {
+	especie: string;
+	nome: string;
+	codigoTipoDespesa: string;
+	dataBase: Date;
+	naturezaTributaria: boolean;
+	renunciaValor: boolean;
+	tipoJuros: string;
+	valor: DadosValor;
 }
 
 interface DadosProcesso {
@@ -38,6 +69,12 @@ interface DadosTransito {
 	dataEvento?: Date;
 	dataDecurso?: Date;
 	dataFechamento?: Date;
+}
+
+interface DadosValor {
+	principal: number;
+	juros: number;
+	total: number;
 }
 
 interface Documento {
