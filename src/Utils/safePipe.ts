@@ -87,6 +87,6 @@ export default function safePipe<A, B, C, D, E, F, G, H, I, J, K>(
 	fij: NullableFn<I, J>,
 	fjk: Fn<J, K>
 ): Nullable<K>;
-export default function safePipe(obj, ...fns) {
+export default function safePipe(obj: any, ...fns: any[]) {
 	return fns.reduce((x, f) => (x == null ? null : f(x)), obj);
 }
