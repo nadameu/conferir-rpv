@@ -917,7 +917,7 @@ export default class PaginaRequisicao extends Pagina {
 
 				if (pagamento.pagamento.especie.match(/^RPV/) !== null) {
 					this.validarElemento(
-						`.${pagamento.pagamento}__renunciaValor`,
+						`.${pagamento.prefixo}__renunciaValor`,
 						pagamento.pagamento.renunciaValor === ultrapassaLimite
 					);
 					this.validarElemento(
