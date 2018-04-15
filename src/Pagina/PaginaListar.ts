@@ -5,6 +5,20 @@ import Pagina from './Pagina';
 import parseDecimalInt from '../Utils/parseDecimalInt';
 import { lefts, rights } from '../Utils/promises';
 
+class ExtendableError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = this.constructor.name;
+		if (typeof Error.captureStackTrace === 'function') {
+			Error.captureStackTrace(this, this.constructor);
+		} else {
+			this.stack = new Error(message).stack;
+		}
+	}
+}
+
+class LinkNotFoundError extends ExtendableError {}
+
 const promiseIndex = <T>(index: number) => (collection: {
 	length: number;
 	[index: number]: T | undefined;
@@ -50,7 +64,7 @@ const makeObterHref = (urls: URL[]) => (param: string, expected?: string) => {
 	);
 	return filtradas.length === 0
 		? Promise.reject(
-				new Error(
+				new LinkNotFoundError(
 					`Não há URL com o parâmetro "${param}" igual a "${expected}".`
 				)
 		  )
@@ -105,11 +119,18 @@ export default class PaginaListar extends Pagina {
 			'#divInfraAreaTabela > table tr[class^="infraTr"]'
 		);
 		const requisicoes = linhas.map(this.obterRequisicao);
-		lefts(requisicoes).then(erros =>
-			erros.forEach(erro => {
-				console.error(erro);
-			})
-		);
+		lefts(requisicoes).then(erros => {
+			erros
+				.filter(erro => !(erro instanceof LinkNotFoundError))
+				.forEach(erro => {
+					console.log('instanceof Error', erro instanceof Error);
+					console.log(
+						'instanceof LinkNotFound',
+						erro instanceof LinkNotFoundError
+					);
+					console.warn(erro);
+				});
+		});
 		return rights(requisicoes);
 	}
 
