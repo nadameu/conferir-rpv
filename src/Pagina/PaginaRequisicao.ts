@@ -26,7 +26,7 @@ export default class PaginaRequisicao extends Pagina {
 		super(doc);
 	}
 
-	private _requisicao: Requisicao;
+	private _requisicao?: Requisicao;
 	async obterRequisicao() {
 		if (!this._requisicao) {
 			this._requisicao = await this.analisarDadosRequisicao();
@@ -625,7 +625,7 @@ export default class PaginaRequisicao extends Pagina {
 			if (data.acao === Acoes.RESPOSTA_DADOS) {
 				(async () => {
 					console.log('Dados da requisicação:', await this.obterRequisicao());
-					this.validarDadosRequisicao();
+					await this.validarDadosRequisicao();
 					await this.exibirValoresCalculados();
 					await this.adicionarAreaDocumentosProcesso();
 					await this.adicionarBotaoTelaIntimacao();
