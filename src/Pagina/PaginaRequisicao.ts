@@ -786,10 +786,12 @@ export default class PaginaRequisicao extends Pagina {
 				prefixo: `gm-requisicao__beneficiario--${ordinal}`,
 			})),
 			requisicao.honorarios
+				.map((honorario, ordinal) => ({ honorario, ordinal }))
 				.filter(
-					({ tipoHonorario }) => tipoHonorario === 'Honorários Contratuais'
+					({ honorario: { tipoHonorario } }) =>
+						tipoHonorario === 'Honorários Contratuais'
 				)
-				.map((honorario, ordinal): Pagamento => ({
+				.map(({ honorario, ordinal }): Pagamento => ({
 					tipo: 'honorario',
 					ordinal,
 					pagamento: {
@@ -802,6 +804,22 @@ export default class PaginaRequisicao extends Pagina {
 									nome.toUpperCase() === honorario.beneficiario.toUpperCase()
 							)
 							.map(({ ordinal }) => ordinal),
+					},
+					prefixo: `gm-requisicao__honorario--${ordinal}`,
+				})),
+			requisicao.honorarios
+				.map((honorario, ordinal) => ({ honorario, ordinal }))
+				.filter(
+					({ honorario: { tipoHonorario } }) =>
+						tipoHonorario !== 'Honorários Contratuais'
+				)
+				.map(({ honorario, ordinal }): Pagamento => ({
+					tipo: 'honorario',
+					ordinal,
+					pagamento: {
+						...honorario,
+						valor: { ...honorario.valor },
+						maybeOrdinalBeneficiario: [],
 					},
 					prefixo: `gm-requisicao__honorario--${ordinal}`,
 				})),
