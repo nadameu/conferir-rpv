@@ -805,7 +805,7 @@ export default class PaginaRequisicao extends Pagina {
 					},
 					prefixo: `gm-requisicao__honorario--${ordinal}`,
 				})),
-		].flatten();
+		].reduce((a, b) => a.concat(b), []);
 
 		const total = pagamentos.reduce(
 			(soma, { pagamento }) => soma + pagamento.valor.total,

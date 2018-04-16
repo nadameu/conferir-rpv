@@ -22,7 +22,8 @@ export default class PaginaProcesso extends Pagina {
 		);
 		const linhas = array
 			.catOptions([maybeTabela])
-			.flatMap(tabela => Array.from(tabela.rows).filter((_, i) => i > 0));
+			.map(tabela => Array.from(tabela.rows).filter((_, i) => i > 0))
+			.reduce((a, b) => a.concat(b), []);
 		const maybeAssuntos = linhas.map(optionTextoCelula(0));
 		const assuntos = array.catOptions(maybeAssuntos);
 		return assuntos;
@@ -131,7 +132,8 @@ export default class PaginaProcesso extends Pagina {
 	obterReus() {
 		return this.queryAll('[id^="spnNomeParteReu"]')
 			.map(optionText)
-			.flatMap(option => option.fold([], x => [x]));
+			.map(option => option.fold([], x => [x]))
+			.reduce((a, b) => a.concat(b), []);
 	}
 
 	obterSentencas() {
@@ -150,7 +152,7 @@ export default class PaginaProcesso extends Pagina {
 
 		const linhasEventos = Array.from((await this.obterTabelaEventos()).tBodies)
 			.map(tbody => Array.from(tbody.rows))
-			.flatten();
+			.reduce((a, b) => a.concat(b), []);
 		const eventosTransito = linhasEventos.filter(linha =>
 			optionTextoCelula(3)(linha).exists(t => reTransito.test(t))
 		);
@@ -439,7 +441,7 @@ export default class PaginaProcesso extends Pagina {
 		return array.catOptions(
 			Array.from((await this.obterTabelaEventos()).tBodies)
 				.map(tbody => Array.from(tbody.rows))
-				.flatten()
+				.reduce((a, b) => a.concat(b), [])
 				.map((linha): Option.Option<DadosEvento> => {
 					const documentos = array.catOptions(
 						linksDocumentosLinha(linha).map(link =>
@@ -491,7 +493,8 @@ export default class PaginaProcesso extends Pagina {
 						.mapNullable(c => c.textContent)
 						.exists(t => regularExpression.test(t.trim()))
 				)
-				.flatMap(l => this.queryAll('.infraLinkDocumento', l));
+				.map(l => this.queryAll<HTMLAnchorElement>('.infraLinkDocumento', l))
+				.reduce((a, b) => a.concat(b), []);
 		});
 	}
 
