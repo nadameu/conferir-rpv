@@ -18,7 +18,6 @@ import Pagina from './Pagina';
 import Padrao from '../Padrao';
 import Requisicao from '../Requisicao';
 import * as Utils from '../Utils';
-import * as Option from 'fp-ts/lib/Option';
 import Mensagem from '../Mensagem';
 
 export default class PaginaRequisicao extends Pagina {
@@ -129,15 +128,12 @@ export default class PaginaRequisicao extends Pagina {
 		const requisicao = new Requisicao();
 
 		const titulo = (await this.queryTexto('.titReq')).trim();
-		const numero = await Option.fromNullable(
-			titulo.match(/^Requisição Nº: (\d+)$/)
+		const numero = await Promise.resolve<RegExpMatchArray>(
+			titulo.match(/^Requisição Nº: (\d+)$/) ||
+				Promise.reject(new Error('Número da requisição não encontrado.'))
 		)
-			.map(match => match[1])
-			.map(Utils.parseDecimalInt)
-			.fold(
-				Promise.reject(new Error('Número da requisição não encontrado.')),
-				n => Promise.resolve(n)
-			);
+			.then(match => match[1])
+			.then(Utils.parseDecimalInt);
 		requisicao.numero = numero;
 
 		const tabela = await this.query<HTMLTableElement>(
