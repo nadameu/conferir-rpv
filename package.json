@@ -7,7 +7,7 @@
 		"build": "webpack --env.production --mode production",
 		"build:dev": "webpack --env.development --mode development",
 		"serve": "webpack-dev-server --env.development --mode development --open",
-		"start": "npm run build:dev && npm run serve",
+		"start": "yarn run build:dev && yarn run serve",
 		"test": "jest",
 		"type-check": "tsc"
 	},
