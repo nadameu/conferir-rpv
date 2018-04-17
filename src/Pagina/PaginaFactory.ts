@@ -1,11 +1,17 @@
 import PaginaListar from './PaginaListar';
 import PaginaProcesso from './PaginaProcesso';
 import PaginaRequisicao from './PaginaRequisicao';
+import PaginaOficioRequisitorioListar from './PaginaOficioRequisitorioListar';
 
-type PaginaComAlteracoes = PaginaListar | PaginaProcesso | PaginaRequisicao;
+type PaginaComAlteracoes =
+	| PaginaListar
+	| PaginaOficioRequisitorioListar
+	| PaginaProcesso
+	| PaginaRequisicao;
 
 type PaginaConstrutor =
 	| typeof PaginaListar
+	| typeof PaginaOficioRequisitorioListar
 	| typeof PaginaProcesso
 	| typeof PaginaRequisicao;
 
@@ -13,6 +19,7 @@ const classesPorAcao: { [acao: string]: PaginaConstrutor } = {
 	processo_selecionar: PaginaProcesso,
 	processo_precatorio_rpv: PaginaListar,
 	oficio_requisitorio_visualizar: PaginaRequisicao,
+	oficio_requisitorio_listar: PaginaOficioRequisitorioListar,
 };
 
 const paginas: WeakMap<Document, PaginaComAlteracoes> = new WeakMap();
