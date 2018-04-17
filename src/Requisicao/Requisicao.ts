@@ -1,7 +1,8 @@
 export default class Requisicao {
 	codigoAssunto: string;
 	dataAjuizamento: Date;
-	dataTransito: Date;
+	dataTransitoConhecimento: string;
+	dataTransitoSentenca: Date;
 	especie: string;
 	linha: HTMLTableRowElement;
 	numero: number;

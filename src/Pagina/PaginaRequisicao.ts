@@ -101,16 +101,16 @@ export default class PaginaRequisicao extends Pagina {
 				'assunto'
 			),
 			new Padrao(
-				/^<span class="titBold">Data do ajuizamento do processo de conhecimento:<\/span> (\d\d\/\d\d\/\d\d\d\d)$/,
+				/^<span class="titBold">Data do ajuizamento do processo de conhecimento:<\/span> (\d{2}\/\d{2}\/\d{4})$/,
 				'dataAjuizamento'
 			),
 			new Padrao(
-				/^<span class="titBold">Data do trânsito em julgado do processo de conhecimento:<\/span> (\d\d\/\d\d\/\d\d\d\d)$/,
-				'dataTransito'
+				/^<span class="titBold">Data do trânsito em julgado do processo de conhecimento:<\/span> ?(\d{2}\/\d{2}\/\d{4}|)$/,
+				'dataTransitoConhecimento'
 			),
 			new Padrao(
-				/^<span class="titBold">Data do trânsito em julgado da sentença ou acórdão\(JEF\):<\/span> (\d\d\/\d\d\/\d\d\d\d)$/,
-				'dataTransito'
+				/^<span class="titBold">Data do trânsito em julgado da sentença ou acórdão\(JEF\):<\/span> (\d{2}\/\d{2}\/\d{4})$/,
+				'dataTransitoSentenca'
 			)
 		);
 		analisador.definirConversores({
@@ -121,7 +121,7 @@ export default class PaginaRequisicao extends Pagina {
 			valorTotalRequisitado: ConversorMoeda,
 			naturezaTributaria: ConversorBool,
 			dataAjuizamento: ConversorData,
-			dataTransito: ConversorData,
+			dataTransitoSentenca: ConversorData,
 		});
 		analisador.prefixo = 'gm-requisicao__dados';
 
@@ -187,12 +187,12 @@ export default class PaginaRequisicao extends Pagina {
 				'tipoHonorario'
 			),
 			new Padrao(
-				/^<span class="titBold">Data Base:<\/span> (\d\d\/\d\d\d\d)&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Valor Requisitado \(Principal Corrigido \+ Juros\):<\/span> ([\d.,]+ \([\d.,]+ \+ [\d.,]+\))$/,
+				/^<span class="titBold">Data Base:<\/span> (\d{2}\/\d{4})&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Valor Requisitado \(Principal Corrigido \+ Juros\):<\/span> ([\d.,]+ \([\d.,]+ \+ [\d.,]+\))$/,
 				'dataBase',
 				'valor'
 			),
 			new Padrao(
-				/^<span class="titBold">Data Base:<\/span> (\d\d\/\d\d\d\d)&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Valor Requisitado \(Principal \+ Valor Selic\):<\/span> ([\d.,]+ \([\d.,]+ \+ [\d.,]+\))$/,
+				/^<span class="titBold">Data Base:<\/span> (\d{2}\/\d{4})&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Valor Requisitado \(Principal \+ Valor Selic\):<\/span> ([\d.,]+ \([\d.,]+ \+ [\d.,]+\))$/,
 				'dataBase',
 				'valor'
 			),
@@ -225,7 +225,7 @@ export default class PaginaRequisicao extends Pagina {
 				'irpf'
 			),
 			new Padrao(
-				/^<span class="titBold">Ano Exercicio Corrente:<\/span> (\d\d\d\d)&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Meses Exercicio Corrente:<\/span> (\d*)&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Valor Exercicio Corrente:<\/span> ([\d.,]+)$/,
+				/^<span class="titBold">Ano Exercicio Corrente:<\/span> (\d{4})&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Meses Exercicio Corrente:<\/span> (\d*)&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Valor Exercicio Corrente:<\/span> ([\d.,]+)$/,
 				'anoCorrente',
 				'mesesCorrente',
 				'valorCorrente'
@@ -647,6 +647,11 @@ export default class PaginaRequisicao extends Pagina {
 				undefined
 		);
 
+		this.validarElemento(
+			'.gm-requisicao__dados__dataTransitoConhecimento',
+			requisicao.dataTransitoConhecimento === '' ? true : undefined
+		);
+
 		// Conferir data de trânsito em julgado
 		let dataTransito = ConversorData.converter(
 			new Date(dadosProcesso.transito.dataTransito || 0)
@@ -661,7 +666,7 @@ export default class PaginaRequisicao extends Pagina {
 			new Date(dadosProcesso.transito.dataFechamento || 0)
 		);
 		let dataTransitoRequisicao = ConversorData.converter(
-			requisicao.dataTransito
+			requisicao.dataTransitoSentenca
 		);
 		let isTrue =
 			dataTransito === dataTransitoRequisicao ||
@@ -670,7 +675,7 @@ export default class PaginaRequisicao extends Pagina {
 			dataEvento === dataTransitoRequisicao ||
 			dataFechamento === dataTransitoRequisicao;
 		this.validarElemento(
-			'.gm-requisicao__dados__dataTransito',
+			'.gm-requisicao__dados__dataTransitoSentenca',
 			isTrue ? true : isUndefined ? undefined : false
 		);
 
