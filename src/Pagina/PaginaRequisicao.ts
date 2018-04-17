@@ -217,6 +217,10 @@ export default class PaginaRequisicao extends Pagina {
 				'renunciaValor'
 			),
 			new Padrao(
+				/^<span class="titBold">Destaque dos Honorários Contratuais:<\/span> (Sim|Não)$/,
+				'destaqueHonorariosContratuais'
+			),
+			new Padrao(
 				/^<span class="titBold">IRPF- RRA a deduzir:<\/span> (Sim|Não)$/,
 				'irpf'
 			),
@@ -256,6 +260,7 @@ export default class PaginaRequisicao extends Pagina {
 					return valor ? 'VALOR BLOQUEADO' : 'VALOR LIBERADO';
 				},
 			},
+			destaqueHonorariosContratuais: ConversorBool,
 			doencaGrave: ConversorBool,
 			renunciaValor: ConversorBool,
 			irpf: ConversorBool,
@@ -944,6 +949,12 @@ export default class PaginaRequisicao extends Pagina {
 						ultrapassaLimite || undefined
 					);
 				}
+
+				this.validarElemento(
+					`.${pagamento.prefixo}__destaqueHonorariosContratuais`,
+					pagamento.pagamento.destaqueHonorariosContratuais ===
+						pagamento.pagamento.ordinaisContratuais.length > 0
+				);
 			} else if (pagamento.tipo === 'honorario') {
 				if (pagamento.pagamento.tipoHonorario === 'Honorários Contratuais') {
 					// Conferir se os dados do contratante estão corretos

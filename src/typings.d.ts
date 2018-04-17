@@ -18,6 +18,7 @@ interface DadosAutor {
 type DadosBeneficiario = DadosPagamento & {
 	anoCorrente: Date;
 	cpfCnpj: string;
+	destaqueHonorariosContratuais: boolean;
 	irpf: boolean;
 	mesesAnterior: number;
 	mesesCorrente: number;
