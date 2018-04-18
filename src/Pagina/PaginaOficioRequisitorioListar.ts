@@ -13,6 +13,12 @@ type DadosPaginacao = {
 	paginaAtual: HTMLInputElement;
 };
 
+type DadosOficios = {
+	linhas: HTMLTableRowElement[];
+	tabela: HTMLTableElement;
+	urls: string[];
+};
+
 export default class PaginaOficioRequisitorioListar extends Pagina {
 	private _isLoadingPages = false;
 	private _isLoadingDates = false;
@@ -86,6 +92,30 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		};
 	}
 
+	async obterDadosOficios(): Promise<DadosOficios> {
+		const links = await Promise.all(
+			this.queryAll<HTMLImageElement>(
+				'img[src$="/infra_css/imagens/lupa.gif"]'
+			).map(lupa => queryParent<HTMLAnchorElement>(lupa, 'a[href]'))
+		);
+		if (links.length === 0)
+			throw new Error('Não foram encontrados ofícios requisitórios.');
+		const baseUrl = this.doc.location.href;
+		const urls = links
+			.map(link => link.getAttribute('onclick') || '')
+			.map(codigo => codigo.match(/window\.open\('([^']+)'/))
+			.filter((x): x is RegExpMatchArray => x !== null)
+			.map(match => new URL(match[1], baseUrl).href);
+		if (urls.length !== links.length) {
+			throw new Error('Não foi possível obter a URL de todos os ofícios.');
+		}
+		const linhas = await Promise.all(
+			links.map(link => queryParent<HTMLTableRowElement>(link, 'tr'))
+		);
+		const tabela = await queryParent<HTMLTableElement>(linhas[0], 'table');
+		return { linhas, tabela, urls };
+	}
+
 	onBotaoCarregarPaginasClicked(dados: DadosPaginacao, evt: Event) {
 		evt.preventDefault();
 		if (this._isLoadingPages) return;
@@ -146,116 +176,70 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		evt.preventDefault();
 		if (this._isLoadingDates) return;
 		this._isLoadingDates = true;
-		const lupas = this.queryAll<HTMLImageElement>(
-			'img[src$="/infra_css/imagens/lupa.gif"]'
-		);
-		const links = lupas
-			.map(lupa => lupa.parentElement)
-			.filter(
-				(link): link is HTMLAnchorElement =>
-					link !== null && link.matches('a[href]')
-			);
-		const linkTemporario = this.doc.createElement('a');
 		const botao = <HTMLButtonElement>evt.target;
-		const oldText = botao.textContent;
-		let porcentagem = 0;
-		const step = 1 / links.length;
-		limitConcurrency(
-			4,
-			link =>
-				Promise.resolve(link.getAttribute('onclick') || '')
-					.then<RegExpMatchArray>(
-						codigo =>
-							codigo.match(/window\.open\('([^']+)'/) ||
-							Promise.reject('Link desconhecido')
-					)
-					.then(match => {
-						linkTemporario.href = match[1];
-						return linkTemporario.href;
-					})
-					.then(
-						url =>
-							new Promise<string>((res, rej) => {
-								botao.textContent = `Carregando dados... ${porcentagem.toLocaleString(
-									'pt-BR',
-									{ style: 'percent' }
-								)}`;
-								const xhr = new XMLHttpRequest();
-								xhr.open('GET', url);
-								xhr.addEventListener('load', () => {
-									res(xhr.responseText);
-								});
-								xhr.addEventListener('error', rej);
-								xhr.send(null);
-							})
-					)
-					.then(
-						html =>
-							html.match(
-								/<td><span class="titBold">Data do trânsito em julgado da sentença ou acórdão\(JEF\):<\/span> (\d{2}\/\d{2}\/\d{4})<\/td>/
-							) ||
-							(console.log('Texto não encontrado:', html),
-							Promise.reject<RegExpMatchArray>(
-								new Error('Texto não encontrado')
-							))
-					)
-					.then(match => match[1])
-					.then(ConversorData.analisar)
-					.then(data => {
-						porcentagem += step;
-						botao.textContent = `Carregando dados... ${porcentagem.toLocaleString(
-							'pt-BR',
-							{ style: 'percent' }
-						)}`;
-						return data;
-					}),
-			links
-		)
-			.then(datas => {
-				return Promise.all(
-					links.map(async (link, i) => {
-						const linha = await queryParent<HTMLTableRowElement>(link, 'tr');
-						const data = datas[i];
-						const celula = linha.insertCell(linha.cells.length);
-						celula.textContent = data.toLocaleDateString();
-						return { linha, data };
-					})
-				);
-			})
-			.then(async infos => {
-				if (infos.length === 0) return infos;
-				const tabela = await queryParent<HTMLTableElement>(
-					<any>infos[0].linha,
-					'table'
-				);
-				const th = this.doc.createElement('th');
-				th.classList.add('infraTh');
-				th.textContent = 'Trânsito';
-				tabela.rows[0].appendChild(th);
-				infos.sort((a, b) => {
-					const dataA = a.data;
-					const dataB = b.data;
-					return dataA < dataB ? -1 : dataA > dataB ? 1 : 0;
-				});
-				const frag = this.doc.createDocumentFragment();
-				infos.forEach(({ linha }) => {
-					frag.appendChild(linha);
-				});
-				tabela.appendChild(frag);
-			})
-			.then(
-				x => {
-					botao.textContent = oldText;
-					console.log('Resultado:', x);
+		const originalText = botao.textContent;
+		this.obterDadosOficios().then(dados => {
+			const { linhas, tabela, urls } = dados;
+			let porcentagem = 0;
+			const step = 1 / urls.length;
+			return limitConcurrency(
+				4,
+				url => {
+					const textoPorcentagem = porcentagem.toLocaleString('pt-BR', {
+						style: 'percent',
+					});
+					botao.textContent = `Carregando dados... ${textoPorcentagem}`;
+					return buscarDados('GET', url, null, 'text')
+						.then(
+							html =>
+								html.match(
+									/<td><span class="titBold">Data do trânsito em julgado da sentença ou acórdão\(JEF\):<\/span> (\d{2}\/\d{2}\/\d{4})<\/td>/
+								) ||
+								(console.log('Data do trânsito não encontrada:', html),
+								Promise.reject<RegExpMatchArray>(
+									new Error('Data do trânsito não encontrada')
+								))
+						)
+						.then(match => match[1])
+						.then(ConversorData.analisar)
+						.then(data => {
+							porcentagem += step;
+							const textoPorcentagem = porcentagem.toLocaleString('pt-BR', {
+								style: 'percent',
+							});
+							botao.textContent = `Carregando dados... ${textoPorcentagem}`;
+							return data;
+						});
 				},
-				e => {
-					botao.textContent = oldText;
-					console.error(e);
-				}
+				urls
 			)
-			.then(() => {
-				this._isLoadingDates = false;
-			});
+				.then(datas => datas.map((data, i) => ({ data, linha: linhas[i] })))
+				.then(infos => {
+					const th = this.doc.createElement('th');
+					th.classList.add('infraTh');
+					th.textContent = 'Trânsito';
+					tabela.rows[0].appendChild(th);
+					infos.sort((a, b) => {
+						const dataA = a.data;
+						const dataB = b.data;
+						return dataA < dataB ? -1 : dataA > dataB ? 1 : 0;
+					});
+					tabela.appendChild(
+						infos.reduce((frag, { data, linha }) => {
+							frag.appendChild(linha);
+							const celula = linha.insertCell(linha.cells.length);
+							celula.textContent = data.toLocaleDateString();
+							return frag;
+						}, this.doc.createDocumentFragment())
+					);
+				})
+				.then(() => (botao.style.display = 'none'))
+				.then(x => console.log('Resultado:', x), e => console.error(e))
+				.then(() => {
+					botao.textContent = originalText;
+					this._isLoadingDates = false;
+				});
+		});
 	}
 }
 
