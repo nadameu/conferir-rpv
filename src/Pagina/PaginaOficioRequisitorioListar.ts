@@ -2,32 +2,47 @@ import BotaoAcao from '../BotaoAcao';
 import Pagina from './Pagina';
 import { ConversorData } from '../Conversor';
 
+type DadosPaginacao = {
+	tabela: HTMLTableElement;
+	caption: HTMLTableCaptionElement;
+	registros: number;
+	form: HTMLFormElement;
+	paginacao: HTMLSelectElement;
+	paginacaoSuperior: HTMLDivElement;
+	paginacaoInferior: HTMLDivElement;
+	paginaAtual: HTMLInputElement;
+};
+
 export default class PaginaOficioRequisitorioListar extends Pagina {
+	private _isLoadingPages = false;
+	private _isLoadingDates = false;
+
 	async adicionarAlteracoes() {
 		const barra = await this.query<HTMLDivElement>(
 			'#divInfraBarraComandosSuperior'
 		);
 		const fragment = this.doc.createDocumentFragment();
-		const botaoCarregarPaginas = this.adicionarBotaoCarregarPaginas();
-		if (botaoCarregarPaginas) {
-			fragment.appendChild(botaoCarregarPaginas);
-			botaoCarregarPaginas.insertAdjacentHTML('afterend', '&nbsp;\n');
-		}
+		await this.adicionarBotaoCarregarPaginas().then(
+			botaoCarregarPaginas => {
+				fragment.appendChild(botaoCarregarPaginas);
+				botaoCarregarPaginas.insertAdjacentHTML('afterend', '&nbsp;\n');
+			},
+			err => {
+				if (!(err instanceof NotFirstPageError)) throw err;
+			}
+		);
 		const botaoOrdenar = this.adicionarBotaoOrdenar();
 		fragment.appendChild(botaoOrdenar);
 		botaoOrdenar.insertAdjacentHTML('afterend', '&nbsp;\n');
 		barra.insertBefore(fragment, barra.firstChild);
 	}
 
-	adicionarBotaoCarregarPaginas() {
-		const paginacao = this.queryAll<HTMLSelectElement>(
-			'#selInfraPaginacaoSuperior'
-		);
-		if (paginacao.length === 0) return null;
-		if (paginacao[0].value !== '0') return null;
+	async adicionarBotaoCarregarPaginas() {
+		const dadosPaginacao = await this.obterDadosPaginacao();
+		if (dadosPaginacao.paginaAtual.value !== '0') throw new NotFirstPageError();
 		return BotaoAcao.criar(
 			'Carregar todas as páginas',
-			this.onBotaoCarregarPaginasClicked.bind(this)
+			this.onBotaoCarregarPaginasClicked.bind(this, dadosPaginacao)
 		);
 	}
 
@@ -38,81 +53,99 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		);
 	}
 
-	onBotaoCarregarPaginasClicked(evt: Event) {
+	async obterDadosPaginacao(): Promise<DadosPaginacao> {
+		const tabela = await this.query<HTMLTableElement>(
+			'#divInfraAreaTabela > table'
+		);
+		const caption = await this.query<HTMLTableCaptionElement>(
+			'caption',
+			tabela
+		);
+		const match = (caption.textContent || '').match(
+			/Lista de  \((\d+) registros - \d+ a \d+\):/
+		);
+		if (!match) {
+			throw new Error('Descrição do número de elementos desconhecida.');
+		}
+
+		return {
+			tabela,
+			caption,
+			registros: Number(match[1]),
+			form: await queryParent<HTMLFormElement>(tabela, 'form'),
+			paginacao: await this.query<HTMLSelectElement>(
+				'#selInfraPaginacaoSuperior'
+			),
+			paginacaoSuperior: await this.query<HTMLDivElement>(
+				'#divInfraAreaPaginacaoSuperior'
+			),
+			paginacaoInferior: await this.query<HTMLDivElement>(
+				'#divInfraAreaPaginacaoInferior'
+			),
+			paginaAtual: await this.query<HTMLInputElement>('#hdnInfraPaginaAtual'),
+		};
+	}
+
+	onBotaoCarregarPaginasClicked(dados: DadosPaginacao, evt: Event) {
 		evt.preventDefault();
-		var self = this;
+		if (this._isLoadingPages) return;
+		const {
+			caption,
+			form,
+			paginacao,
+			paginacaoSuperior,
+			paginacaoInferior,
+			registros,
+			tabela,
+		} = dados;
 		const botao = <HTMLButtonElement>evt.target;
 		const originalText = botao.textContent;
-		(async function() {
-			const tabela = await self.query<HTMLTableElement>(
-				'#divInfraAreaTabela > table'
-			);
-			const paginacao = await self.query<HTMLSelectElement>(
-				'#selInfraPaginacaoSuperior'
-			);
-			const paginas = paginacao.options.length;
-			const paginaAtual = await self.query<HTMLInputElement>(
-				'#hdnInfraPaginaAtual'
-			);
-			const form = await queryParent<HTMLFormElement>(paginaAtual, 'form');
-			const data = new FormData(form);
-			return limitConcurrency(
-				1,
-				pagina =>
-					new Promise<Document>((res, rej) => {
-						botao.textContent = `Carregando página ${pagina + 1}...`;
-						data.set('hdnInfraPaginaAtual', pagina.toString());
-						const xhr = new XMLHttpRequest();
-						xhr.open('POST', self.doc.location.href);
-						xhr.responseType = 'document';
-						xhr.addEventListener('load', () => res(xhr.response));
-						xhr.addEventListener('error', rej);
-						xhr.send(data);
-					})
-						.then(doc => {
-							return doc.querySelectorAll<HTMLTableRowElement>(
-								'#divInfraAreaTabela > table > tbody > tr:nth-child(n + 2)'
-							);
-						})
-						.then(linhas => {
-							linhas.forEach(linha => tabela.appendChild(linha));
-						}),
-				Array.from({ length: paginas - 1 }, (_, i) => i + 1)
+		const paginas = paginacao.options.length;
+		const data = new FormData(form);
+		this._isLoadingPages = true;
+		return limitConcurrency(
+			1,
+			pagina => {
+				const inicial = pagina * 50 + 1;
+				const final = Math.min(registros, inicial + 49);
+				botao.textContent = `Carregando ofícios ${inicial} a ${final}...`;
+				data.set('hdnInfraPaginaAtual', pagina.toString());
+				return buscarDados('POST', this.doc.location.href, data).then(doc =>
+					Array.from(
+						doc.querySelectorAll<HTMLTableRowElement>(
+							'#divInfraAreaTabela > table > tbody > tr:nth-child(n + 2)'
+						)
+					)
+				);
+			},
+			Array.from({ length: paginas - 1 }, (_, i) => i + 1)
+		)
+			.then(colecoes =>
+				colecoes
+					.reduce((prev, curr) => prev.concat(curr))
+					.reduce((frag, linha) => {
+						frag.appendChild(linha);
+						return frag;
+					}, this.doc.createDocumentFragment())
 			)
-				.then(() => {
-					botao.textContent = originalText;
-					return self.query<HTMLTableCaptionElement>('caption', tabela);
-				})
-				.then(caption => {
-					const match = (caption.textContent || '').match(
-						/Lista de  \((\d+) registros - 1 a 50\):/
-					);
-					if (!match) {
-						throw new Error('Descrição do número de elementos desconhecida.');
-					}
-					caption.textContent = `Lista de ${match[1]} registros:`;
-					return Promise.all([
-						self.query<HTMLDivElement>('#divInfraAreaPaginacaoSuperior'),
-						self.query<HTMLDivElement>('#divInfraAreaPaginacaoInferior'),
-					]);
-				})
-				.then(divs => {
-					divs.forEach(div => {
-						div.style.display = 'none';
-					});
-					botao.style.display = 'none';
+			.then(frag => {
+				tabela.appendChild(frag);
+				caption.textContent = `Lista de ${registros} registros:`;
+				[paginacaoSuperior, paginacaoInferior, botao].forEach(el => {
+					el.style.display = 'none';
 				});
-		})().then(
-			x => console.log('Resultado:', x),
-			e => {
+			})
+			.then(x => console.log('Resultado:', x), e => console.error(e))
+			.then(() => {
 				botao.textContent = originalText;
-				console.error(e);
-			}
-		);
+				this._isLoadingPages = false;
+			});
 	}
 
 	onBotaoOrdenarClicked(evt: Event) {
 		evt.preventDefault();
+		if (this._isLoadingDates) return;
+		this._isLoadingDates = true;
 		const lupas = this.queryAll<HTMLImageElement>(
 			'img[src$="/infra_css/imagens/lupa.gif"]'
 		);
@@ -178,31 +211,27 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 					}),
 			links
 		)
-			.then(datas =>
-				Promise.all(
+			.then(datas => {
+				return Promise.all(
 					links.map(async (link, i) => {
-						link.style.background = 'red;';
 						const linha = await queryParent<HTMLTableRowElement>(link, 'tr');
-						const celula = linha.cells[0];
-						celula.appendChild(
-							this.doc.createTextNode(
-								datas[i].toLocaleDateString('pt-BR', {
-									day: 'numeric',
-									month: 'numeric',
-									year: '2-digit',
-								})
-							)
-						);
-						return { linha, data: datas[i] };
+						const data = datas[i];
+						const celula = linha.insertCell(linha.cells.length);
+						celula.textContent = data.toLocaleDateString();
+						return { linha, data };
 					})
-				)
-			)
+				);
+			})
 			.then(async infos => {
 				if (infos.length === 0) return infos;
 				const tabela = await queryParent<HTMLTableElement>(
 					<any>infos[0].linha,
 					'table'
 				);
+				const th = this.doc.createElement('th');
+				th.classList.add('infraTh');
+				th.textContent = 'Trânsito';
+				tabela.rows[0].appendChild(th);
 				infos.sort((a, b) => {
 					const dataA = a.data;
 					const dataB = b.data;
@@ -223,7 +252,10 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 					botao.textContent = oldText;
 					console.error(e);
 				}
-			);
+			)
+			.then(() => {
+				this._isLoadingDates = false;
+			});
 	}
 }
 
@@ -267,6 +299,8 @@ function limitConcurrency<T, U>(
 	});
 }
 
+class NotFirstPageError extends Error {}
+
 function queryParent<T extends HTMLElement>(element: Node, selector: string) {
 	let parent = element.parentElement;
 	while (parent !== null) {
@@ -274,4 +308,24 @@ function queryParent<T extends HTMLElement>(element: Node, selector: string) {
 		parent = parent.parentElement;
 	}
 	return Promise.reject(new Error('Ancestral não encontrado.'));
+}
+
+function buscarDados<T extends XMLHttpRequestResponseType = 'document'>(
+	method: string,
+	url: string,
+	data: any = null,
+	responseType: T = <T>'document'
+) {
+	return new Promise<
+		T extends 'document' ? Document : T extends 'text' ? string : any
+	>((res, rej) => {
+		const xhr = new XMLHttpRequest();
+		xhr.open(method, url);
+		xhr.responseType = responseType;
+		xhr.addEventListener('load', () => {
+			res(responseType === 'text' ? xhr.responseText : xhr.response);
+		});
+		xhr.addEventListener('error', rej);
+		xhr.send(data);
+	});
 }
