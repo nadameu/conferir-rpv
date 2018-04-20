@@ -117,9 +117,7 @@ export default class PaginaRequisicao extends Pagina {
 			originarioJEF: ConversorBool,
 			extraorcamentaria: ConversorBool,
 			processoEletronico: ConversorBool,
-			dataHora: ConversorDataHora,
 			valorTotalRequisitado: ConversorMoeda,
-			naturezaTributaria: ConversorBool,
 			dataAjuizamento: ConversorData,
 			dataTransitoSentenca: ConversorData,
 		});
@@ -209,16 +207,29 @@ export default class PaginaRequisicao extends Pagina {
 				'codigoTipoDespesa'
 			),
 			new Padrao(
-				/^<span class="titBold">Doença Grave:<\/span> (Sim|Não|)$/,
+				/^<span class="titBold">Doença Grave:<\/span> (Sim|Não)$/,
 				'doencaGrave'
+			),
+			new Padrao(
+				/^<span class="titBold">Doença Grave:<\/span> (Sim|Não)&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Data Nascimento:<\/span> (\d{2}\/\d{2}\/\d{4})$/,
+				'doencaGrave',
+				'dataNascimento'
 			),
 			new Padrao(
 				/^<span class="titBold">Renuncia Valor:<\/span> ?(Sim|Não|)$/,
 				'renunciaValor'
 			),
 			new Padrao(
+				/^<span class="titBold">Situação Servidor:<\/span> (.*)$/,
+				'situacaoServidor'
+			),
+			new Padrao(
 				/^<span class="titBold">Destaque dos Honorários Contratuais:<\/span> (Sim|Não)$/,
 				'destaqueHonorariosContratuais'
+			),
+			new Padrao(
+				/^<span class="titBold">Órgao de lotação do servidor:<\/span> (.*)$/,
+				'orgaoLotacaoServidor'
 			),
 			new Padrao(
 				/^<span class="titBold">IRPF- RRA a deduzir:<\/span> (Sim|Não)$/,
@@ -247,6 +258,10 @@ export default class PaginaRequisicao extends Pagina {
 			new Padrao(
 				/^<span class="titBold">Requisição de Natureza Tributária \(ATUALIZADA PELA SELIC\):<\/span> (Sim|Não)$/,
 				'naturezaTributaria'
+			),
+			new Padrao(
+				/^<span class="titBold">Incide PSS:<\/span> ?(Sim|Não)$/,
+				'pss'
 			)
 		);
 		analisador.definirConversores({
@@ -260,6 +275,7 @@ export default class PaginaRequisicao extends Pagina {
 					return valor ? 'VALOR BLOQUEADO' : 'VALOR LIBERADO';
 				},
 			},
+			dataNascimento: ConversorData,
 			destaqueHonorariosContratuais: ConversorBool,
 			doencaGrave: ConversorBool,
 			renunciaValor: ConversorBool,
@@ -270,6 +286,7 @@ export default class PaginaRequisicao extends Pagina {
 			mesesAnterior: ConversorInt,
 			valorAnterior: ConversorMoeda,
 			naturezaTributaria: ConversorBool,
+			pss: ConversorBool,
 		});
 		analisador.prefixo = prefixo;
 
@@ -519,25 +536,8 @@ export default class PaginaRequisicao extends Pagina {
 					)}</span></p>`
 				);
 				// }
-			}
-			if (beneficiario.pss) {
-				if (beneficiario.pss.semIncidencia) {
-					areaTabela.insertAdjacentHTML(
-						'beforeend',
-						'<p class="gm-resposta gm-dados-adicionais"><span class="gm-resposta--indefinida">SEM</span> incidência de PSS</p>'
-					);
-				} else {
-					areaTabela.insertAdjacentHTML(
-						'beforeend',
-						'<p class="gm-resposta gm-dados-adicionais"><span class="gm-resposta--indefinida">COM</span> incidência de PSS</p>'
-					);
-					if (beneficiario.irpf) {
-						areaTabela.insertAdjacentHTML(
-							'beforeend',
-							'<p class="gm-resposta gm-dados-adicionais"><span class="gm-resposta--incorreta">Verificar se é caso de deduzir PSS da base de cálculo do IRPF</span></p>'
-						);
-					}
-				}
+			} else {
+				this.validarElemento(`${prefixo}__irpf`);
 			}
 			if (porcentagemAdvogado > 0) {
 				const valoresHonorarios = honorarios.map(
@@ -778,7 +778,6 @@ export default class PaginaRequisicao extends Pagina {
 				ordinal,
 				pagamento: {
 					...beneficiario,
-					pss: { ...beneficiario.pss },
 					valor: { ...beneficiario.valor },
 					ordinaisContratuais: requisicao.honorarios
 						.map((honorario, ordinal) => ({ honorario, ordinal }))
@@ -848,21 +847,32 @@ export default class PaginaRequisicao extends Pagina {
 
 		pagamentos.forEach(pagamento => {
 			// Destacar campos que requerem atenção
+			const tiposHonorariosPresumeLiberado = [
+				'Devolução à Seção Judiciária',
+				'Honorários Periciais',
+				'Honorários de Sucumbência',
+				'Honorários Contratuais',
+			];
+			const bloqueioEstaCorreto =
+				!pagamento.pagamento.bloqueado &&
+				pagamento.tipo === 'honorario' &&
+				tiposHonorariosPresumeLiberado.some(
+					tipo => tipo === pagamento.pagamento.tipoHonorario
+				);
 			this.validarElemento(
 				`.${pagamento.prefixo}__bloqueado`,
-				(pagamento.tipo === 'honorario' &&
-					pagamento.pagamento.tipoHonorario ===
-						'Devolução à Seção Judiciária') ||
-					undefined
+				bloqueioEstaCorreto || undefined
 			);
 			if ('tipoJuros' in pagamento.pagamento) {
 				this.validarElemento(
 					`.${pagamento.prefixo}__tipoJuros`,
-					(ehPrevidenciario && pagamento.pagamento.tipoJuros === 'Poupança') ||
-						(pagamento.tipo === 'honorario' &&
-							pagamento.pagamento.tipoHonorario ===
-								'Devolução à Seção Judiciária' &&
-							pagamento.pagamento.tipoJuros === 'Não incidem') ||
+					(pagamento.tipo === 'honorario' &&
+						(pagamento.pagamento.tipoHonorario ===
+							'Devolução à Seção Judiciária' ||
+							pagamento.pagamento.tipoHonorario === 'Honorários Periciais') &&
+						pagamento.pagamento.tipoJuros === 'Não incidem') ||
+						(ehPrevidenciario &&
+							pagamento.pagamento.tipoJuros === 'Poupança') ||
 						undefined
 				);
 			}
@@ -872,6 +882,16 @@ export default class PaginaRequisicao extends Pagina {
 					`.${pagamento.prefixo}__naturezaTributaria`,
 					ehTributario === pagamento.pagamento.naturezaTributaria
 				);
+			}
+
+			if ('situacaoServidor' in pagamento.pagamento) {
+				this.validarElemento(`.${pagamento.prefixo}__situacaoServidor`);
+			}
+			if ('orgaoLotacaoServidor' in pagamento.pagamento) {
+				this.validarElemento(`.${pagamento.prefixo}__orgaoLotacaoServidor`);
+			}
+			if ('pss' in pagamento.pagamento) {
+				this.validarElemento(`.${pagamento.prefixo}__pss`);
 			}
 
 			switch (pagamento.pagamento.codigoTipoDespesa) {
@@ -902,10 +922,7 @@ export default class PaginaRequisicao extends Pagina {
 				codigoNaturezaCorreto
 			);
 
-			if (
-				pagamento.tipo === 'beneficiario' &&
-				pagamento.pagamento.especie.match(/^RPV/) === null
-			) {
+			if (!/^RPV/.test(pagamento.pagamento.especie)) {
 				this.validarElemento(`.${pagamento.prefixo}__doencaGrave`, undefined);
 			}
 			if (pagamento.tipo === 'beneficiario') {

@@ -16,16 +16,7 @@ interface DadosAutor {
 }
 
 type DadosBeneficiario = DadosPagamento & {
-	anoCorrente: Date;
-	cpfCnpj: string;
-	destaqueHonorariosContratuais: boolean;
-	irpf: boolean;
-	mesesAnterior: number;
-	mesesCorrente: number;
-	pss: { semIncidencia: boolean };
 	ordinal: number;
-	valorAnterior: number;
-	valorCorrente: number;
 };
 
 interface DadosEvento extends EventoI {
@@ -41,14 +32,30 @@ type DadosHonorario = DadosPagamento & {
 };
 
 interface DadosPagamento {
-	especie: string;
-	nome: string;
+	anoCorrente: Date;
+	beneficiario: string;
+	bloqueado: boolean;
 	codigoTipoDespesa: string;
+	cpfCnpj: string;
 	dataBase: Date;
+	dataNascimento: Date;
+	destaqueHonorariosContratuais: boolean;
+	doencaGrave: boolean;
+	especie: string;
+	irpf: boolean;
+	mesesAnterior: number;
+	mesesCorrente: number;
 	naturezaTributaria: boolean;
+	nome: string;
+	orgaoLotacaoServidor: string;
+	pss: boolean;
 	renunciaValor: boolean;
+	situacaoServidor: string;
+	tipoHonorario: string;
 	tipoJuros: string;
 	valor: DadosValor;
+	valorAnterior: number;
+	valorCorrente: number;
 }
 
 interface DadosProcesso {
