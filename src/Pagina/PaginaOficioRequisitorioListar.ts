@@ -40,6 +40,9 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		const botaoOrdenar = this.adicionarBotaoOrdenar();
 		fragment.appendChild(botaoOrdenar);
 		botaoOrdenar.insertAdjacentHTML('afterend', '&nbsp;\n');
+		const botaoLimparCache = this.adicionarBotaoLimparCache();
+		fragment.appendChild(botaoLimparCache);
+		botaoLimparCache.insertAdjacentHTML('afterend', '&nbsp;\n');
 		barra.insertBefore(fragment, barra.firstChild);
 	}
 
@@ -50,6 +53,13 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 			'Carregar todas as páginas',
 			this.onBotaoCarregarPaginasClicked.bind(this, dadosPaginacao)
 		);
+	}
+
+	adicionarBotaoLimparCache() {
+		return BotaoAcao.criar('Excluir dados armazenados localmente', evt => {
+			evt.preventDefault();
+			excluirDatasSalvas();
+		});
 	}
 
 	adicionarBotaoOrdenar() {
@@ -179,6 +189,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		const botao = <HTMLButtonElement>evt.target;
 		const originalText = botao.textContent;
 		this.obterDadosOficios().then(dados => {
+			carregarDatasSalvas();
 			const { linhas, tabela, urls } = dados;
 			let porcentagem = 0;
 			const step = 1 / urls.length;
@@ -189,27 +200,14 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 						style: 'percent',
 					});
 					botao.textContent = `Carregando dados... ${textoPorcentagem}`;
-					return buscarDados('GET', url, null, 'text')
-						.then(
-							html =>
-								html.match(
-									/<td><span class="titBold">Data do trânsito em julgado da sentença ou acórdão\(JEF\):<\/span> (\d{2}\/\d{2}\/\d{4})<\/td>/
-								) ||
-								(console.log('Data do trânsito não encontrada:', html),
-								Promise.reject<RegExpMatchArray>(
-									new Error('Data do trânsito não encontrada')
-								))
-						)
-						.then(match => match[1])
-						.then(ConversorData.analisar)
-						.then(data => {
-							porcentagem += step;
-							const textoPorcentagem = porcentagem.toLocaleString('pt-BR', {
-								style: 'percent',
-							});
-							botao.textContent = `Carregando dados... ${textoPorcentagem}`;
-							return data;
+					return buscarDataTransito(url).then(data => {
+						porcentagem += step;
+						const textoPorcentagem = porcentagem.toLocaleString('pt-BR', {
+							style: 'percent',
 						});
+						botao.textContent = `Carregando dados... ${textoPorcentagem}`;
+						return data;
+					});
 				},
 				urls
 			)
@@ -225,10 +223,15 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 						return dataA < dataB ? -1 : dataA > dataB ? 1 : 0;
 					});
 					tabela.appendChild(
-						infos.reduce((frag, { data, linha }) => {
+						infos.reduce((frag, { data, linha }, i) => {
 							frag.appendChild(linha);
-							const celula = linha.insertCell(linha.cells.length);
-							celula.textContent = data.toLocaleDateString();
+							const primeiraCelula = linha.cells[0];
+							primeiraCelula.insertAdjacentHTML(
+								'afterbegin',
+								String(i + 1).padStart(3, '0')
+							);
+							const celulaTransito = linha.insertCell(linha.cells.length);
+							celulaTransito.textContent = data.toLocaleDateString();
 							return frag;
 						}, this.doc.createDocumentFragment())
 					);
@@ -236,6 +239,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 				.then(() => (botao.style.display = 'none'))
 				.then(x => console.log('Resultado:', x), e => console.error(e))
 				.then(() => {
+					salvarDatas();
 					botao.textContent = originalText;
 					this._isLoadingDates = false;
 				});
@@ -312,4 +316,58 @@ function buscarDados<T extends XMLHttpRequestResponseType = 'document'>(
 		xhr.addEventListener('error', rej);
 		xhr.send(data);
 	});
+}
+
+let datas: Map<number, Date> = new Map();
+function carregarDatasSalvas() {
+	const dados: [number, string][] = JSON.parse(
+		localStorage.getItem('datas-transito') || '[]'
+	);
+	datas = new Map(
+		dados.map<[number, Date]>(([numero, data]) => [
+			numero,
+			ConversorData.analisar(data),
+		])
+	);
+}
+function salvarDatas() {
+	localStorage.setItem(
+		'datas-transito',
+		JSON.stringify(
+			Array.from(datas).map<[number, string]>(([numero, data]) => [
+				numero,
+				ConversorData.converter(data),
+			])
+		)
+	);
+}
+function excluirDatasSalvas() {
+	localStorage.removeItem('datas-transito');
+}
+
+function buscarDataTransito(url: string) {
+	const params = new URL(url).searchParams;
+	const numero = Number(params.get('txtNumRequisicao'));
+	if (!isNaN(numero) && datas.has(numero)) {
+		return Promise.resolve(<Date>datas.get(numero));
+	}
+	return buscarDados('GET', url, null, 'text')
+		.then(
+			html =>
+				html.match(
+					/<td><span class="titBold">Data do trânsito em julgado da sentença ou acórdão\(JEF\):<\/span> (\d{2}\/\d{2}\/\d{4})<\/td>/
+				) ||
+				(console.log('Data do trânsito não encontrada:', html),
+				Promise.reject<RegExpMatchArray>(
+					new Error('Data do trânsito não encontrada')
+				))
+		)
+		.then(match => match[1])
+		.then(ConversorData.analisar)
+		.then(data => {
+			if (!isNaN(numero)) {
+				datas.set(numero, data);
+			}
+			return data;
+		});
 }
