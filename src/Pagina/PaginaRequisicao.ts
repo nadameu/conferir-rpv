@@ -834,6 +834,8 @@ export default class PaginaRequisicao extends Pagina {
 				})),
 		].reduce((a, b) => a.concat(b), []);
 
+		const LIMITE = 60 * SALARIO_MINIMO;
+
 		const total = pagamentos.reduce(
 			(soma, { pagamento }) => soma + pagamento.valor.total,
 			0
@@ -841,9 +843,11 @@ export default class PaginaRequisicao extends Pagina {
 		this.validarElemento(
 			'.gm-requisicao__dados__valorTotalRequisitado',
 			requisicao.valorTotalRequisitado === Utils.round(total, 2)
+				? requisicao.valorTotalRequisitado > LIMITE
+					? undefined
+					: true
+				: false
 		);
-
-		const LIMITE = 60 * SALARIO_MINIMO;
 
 		pagamentos.forEach(pagamento => {
 			// Destacar campos que requerem atenção
@@ -954,21 +958,23 @@ export default class PaginaRequisicao extends Pagina {
 							.map(honorario => honorario.valor.total)
 					)
 					.reduce((soma, valor) => soma + valor, 0);
-				const ultrapassaLimite = valorIncluindoContratuais / LIMITE > 0.99;
+				const diferenca =
+					Math.round(valorIncluindoContratuais * 100) - LIMITE * 100;
 
 				if (pagamento.pagamento.especie.match(/^RPV/) !== null) {
 					this.validarElemento(
 						`.${pagamento.prefixo}__renunciaValor`,
-						pagamento.pagamento.renunciaValor === ultrapassaLimite
+						pagamento.pagamento.renunciaValor === (diferenca === 0)
 					);
 					this.validarElemento(
 						`.${pagamento.prefixo}__especie`,
-						!ultrapassaLimite
+						diferenca <= 0
 					);
+					console.log(diferenca);
 				} else {
 					this.validarElemento(
 						`.${pagamento.prefixo}__especie`,
-						ultrapassaLimite || undefined
+						diferenca > 0 || undefined
 					);
 				}
 
@@ -1011,21 +1017,22 @@ export default class PaginaRequisicao extends Pagina {
 								.map(beneficiario => beneficiario.valor.total)
 						)
 						.reduce((soma, valor) => soma + valor, 0);
-					const ultrapassaLimite = valorIncluindoBeneficiario / LIMITE > 0.99;
+					const diferenca =
+						Math.round(valorIncluindoBeneficiario * 100) - LIMITE * 100;
 
 					if (pagamento.pagamento.especie.match(/^RPV/) !== null) {
 						this.validarElemento(
 							`.${pagamento.prefixo}__renunciaValor`,
-							pagamento.pagamento.renunciaValor === ultrapassaLimite
+							pagamento.pagamento.renunciaValor === (diferenca === 0)
 						);
 						this.validarElemento(
 							`.${pagamento.prefixo}__especie`,
-							!ultrapassaLimite
+							diferenca <= 0
 						);
 					} else {
 						this.validarElemento(
 							`.${pagamento.prefixo}__especie`,
-							ultrapassaLimite || undefined
+							diferenca > 0 || undefined
 						);
 					}
 				} else {

@@ -3,14 +3,14 @@ import Pagina from './Pagina';
 import { ConversorData } from '../Conversor';
 
 type DadosPaginacao = {
-	tabela: HTMLTableElement;
 	caption: HTMLTableCaptionElement;
-	registros: number;
 	form: HTMLFormElement;
-	paginacao: HTMLSelectElement;
+	paginaAtual: HTMLInputElement;
 	paginacaoSuperior: HTMLDivElement;
 	paginacaoInferior: HTMLDivElement;
-	paginaAtual: HTMLInputElement;
+	paginas: number;
+	registros: number;
+	tBody: HTMLTableSectionElement;
 };
 
 type DadosOficios = {
@@ -34,7 +34,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 				botaoCarregarPaginas.insertAdjacentHTML('afterend', '&nbsp;\n');
 			},
 			err => {
-				if (!(err instanceof NotFirstPageError)) throw err;
+				if (!(err instanceof NaoCarregarOutrasPaginasError)) throw err;
 			}
 		);
 		const botaoOrdenar = this.adicionarBotaoOrdenar();
@@ -48,7 +48,6 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 
 	async adicionarBotaoCarregarPaginas() {
 		const dadosPaginacao = await this.obterDadosPaginacao();
-		if (dadosPaginacao.paginaAtual.value !== '0') throw new NotFirstPageError();
 		return BotaoAcao.criar(
 			'Carregar todas as páginas',
 			this.onBotaoCarregarPaginasClicked.bind(this, dadosPaginacao)
@@ -59,6 +58,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		return BotaoAcao.criar('Excluir dados armazenados localmente', evt => {
 			evt.preventDefault();
 			excluirDatasSalvas();
+			this.doc.defaultView.alert('Dados locais excluídos.');
 		});
 	}
 
@@ -70,6 +70,23 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 	}
 
 	async obterDadosPaginacao(): Promise<DadosPaginacao> {
+		const paginaAtual = await this.query<HTMLInputElement>(
+			'#hdnInfraPaginaAtual'
+		);
+		if (Number(paginaAtual.value) !== 0) {
+			throw new NaoCarregarOutrasPaginasError();
+		}
+
+		// Garante que há mais de uma página
+		await this.query<HTMLAnchorElement>('#lnkInfraProximaPaginaSuperior').catch(
+			() => Promise.reject(new NaoCarregarOutrasPaginasError())
+		);
+
+		const paginacao = this.doc.querySelector<HTMLSelectElement>(
+			'#selInfraPaginacaoSuperior'
+		);
+		const paginas = paginacao === null ? 2 : paginacao.options.length;
+
 		const tabela = await this.query<HTMLTableElement>(
 			'#divInfraAreaTabela > table'
 		);
@@ -85,20 +102,18 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		}
 
 		return {
-			tabela,
+			tBody: await this.query<HTMLTableSectionElement>('tbody'),
 			caption,
 			registros: Number(match[1]),
 			form: await queryParent<HTMLFormElement>(tabela, 'form'),
-			paginacao: await this.query<HTMLSelectElement>(
-				'#selInfraPaginacaoSuperior'
-			),
 			paginacaoSuperior: await this.query<HTMLDivElement>(
 				'#divInfraAreaPaginacaoSuperior'
 			),
 			paginacaoInferior: await this.query<HTMLDivElement>(
 				'#divInfraAreaPaginacaoInferior'
 			),
-			paginaAtual: await this.query<HTMLInputElement>('#hdnInfraPaginaAtual'),
+			paginaAtual,
+			paginas,
 		};
 	}
 
@@ -132,15 +147,14 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		const {
 			caption,
 			form,
-			paginacao,
+			paginas,
 			paginacaoSuperior,
 			paginacaoInferior,
 			registros,
-			tabela,
+			tBody,
 		} = dados;
 		const botao = <HTMLButtonElement>evt.target;
 		const originalText = botao.textContent;
-		const paginas = paginacao.options.length;
 		const data = new FormData(form);
 		this._isLoadingPages = true;
 		return limitConcurrency(
@@ -163,13 +177,28 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 			.then(colecoes =>
 				colecoes
 					.reduce((prev, curr) => prev.concat(curr))
-					.reduce((frag, linha) => {
+					.reduce((frag, linha, i) => {
 						frag.appendChild(linha);
+						const ordinal = String(50 + i);
+						linha.id = `tr_${ordinal}`;
+						const chk = linha.cells[0].querySelector<HTMLInputElement>(
+							'input[type=checkbox]'
+						);
+						if (chk) {
+							chk.id = `chklinha_${ordinal}`;
+							chk.setAttribute('onclick', `marcaDesmarcaLinha(${ordinal})`);
+						}
 						return frag;
 					}, this.doc.createDocumentFragment())
 			)
 			.then(frag => {
-				tabela.appendChild(frag);
+				Array.from(tBody.rows).forEach(linha => {
+					linha.onmouseover = null;
+					linha.onmouseout = null;
+					linha.classList.remove('infraTrSelecionada');
+				});
+				tBody.classList.add('gm-conferir-rpv__tbody');
+				tBody.appendChild(frag);
 				caption.textContent = `Lista de ${registros} registros:`;
 				[paginacaoSuperior, paginacaoInferior, botao].forEach(el => {
 					el.style.display = 'none';
@@ -287,7 +316,7 @@ function limitConcurrency<T, U>(
 	});
 }
 
-class NotFirstPageError extends Error {}
+class NaoCarregarOutrasPaginasError extends Error {}
 
 function queryParent<T extends HTMLElement>(element: Node, selector: string) {
 	let parent = element.parentElement;
