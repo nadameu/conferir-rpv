@@ -32,7 +32,7 @@ export default class AnalisadorLinhasTabela {
 		});
 		this.aplicarConversores(changed);
 		Object.assign(obj, changed);
-		return changed;
+		return obj;
 	}
 
 	private aplicarConversores(obj: { [nome: string]: string }) {
