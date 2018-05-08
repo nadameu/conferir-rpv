@@ -884,7 +884,10 @@ export default class PaginaRequisicao extends Pagina {
 			if ('naturezaTributaria' in pagamento.pagamento) {
 				this.validarElemento(
 					`.${pagamento.prefixo}__naturezaTributaria`,
-					ehTributario === pagamento.pagamento.naturezaTributaria
+					pagamento.pagamento.naturezaTributaria ===
+						(ehTributario &&
+							(pagamento.tipo === 'beneficiario' ||
+								pagamento.pagamento.tipoHonorario === 'Honorários Contratuais'))
 				);
 			}
 
@@ -900,7 +903,12 @@ export default class PaginaRequisicao extends Pagina {
 
 			switch (pagamento.pagamento.codigoTipoDespesa) {
 				case '11':
-					codigoNaturezaCorreto = ehServidor;
+					codigoNaturezaCorreto =
+						ehServidor ||
+						(pagamento.tipo === 'honorario' &&
+							pagamento.pagamento.tipoHonorario ===
+								'Honorários de Sucumbência') ||
+						undefined;
 					break;
 
 				case '12':
