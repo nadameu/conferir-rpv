@@ -536,7 +536,7 @@ export default class PaginaRequisicao extends Pagina {
 					)}</span></p>`
 				);
 				// }
-			} else {
+			} else if (beneficiario.irpf === false) {
 				this.validarElemento(`${prefixo}__irpf`);
 			}
 			if (porcentagemAdvogado > 0) {
