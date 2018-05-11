@@ -1008,11 +1008,15 @@ export default class PaginaRequisicao extends Pagina {
 									pagamento.pagamento.dataBase.getTime()
 							);
 							// Conferir se razão entre principal e juros dos honorários contratuais é a mesma do valor do beneficiário
-							const razao =
-								beneficiario.valor.principal *
-								pagamento.pagamento.valor.juros /
-								(beneficiario.valor.juros *
-									pagamento.pagamento.valor.principal);
+							const {
+								principal: princBen,
+								total: totalBen,
+							} = beneficiario.valor;
+							const {
+								principal: princAdv,
+								total: totalAdv,
+							} = pagamento.pagamento.valor;
+							const razao = princBen * totalAdv / (totalBen * princAdv);
 							this.validarElemento(
 								`.${pagamento.prefixo}__valor`,
 								Math.abs(razao - 1) < 0.005
