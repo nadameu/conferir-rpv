@@ -93,6 +93,12 @@ export default class PaginaProcesso extends Pagina {
 		return (<DadosEvento[]>[]).concat(outros, procuracoes);
 	}
 
+	obterDespachosCitacao() {
+		return this.destacarDocumentosPorEvento(
+			/Despacho\/Decisão - Determina Citação/
+		);
+	}
+
 	async obterHonorarios() {
 		return (<DadosEvento[]>[]).concat(
 			await this.destacarDocumentosPorTipo('SOLPGTOHON'),
@@ -539,6 +545,7 @@ export default class PaginaProcesso extends Pagina {
 				autores: this.obterAutores(),
 				autuacao: await this.obterAutuacao(),
 				calculos: await this.obterCalculos(),
+				despachosCitacao: await this.obterDespachosCitacao(),
 				contratos: await this.obterContratos(),
 				honorarios: await this.obterHonorarios(),
 				justicaGratuita: this.obterJusticaGratuita(),

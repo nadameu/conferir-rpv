@@ -64,6 +64,7 @@ interface DadosProcesso {
 	autuacao: Date;
 	calculos: DadosEvento[];
 	contratos: DadosEvento[];
+	despachosCitacao: DadosEvento[];
 	honorarios: DadosEvento[];
 	justicaGratuita: string;
 	magistrado: string;

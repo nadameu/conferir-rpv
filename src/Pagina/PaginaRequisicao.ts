@@ -366,6 +366,7 @@ export default class PaginaRequisicao extends Pagina {
 			.concat(
 				dadosProcesso.calculos,
 				dadosProcesso.contratos,
+				dadosProcesso.despachosCitacao,
 				dadosProcesso.honorarios,
 				dadosProcesso.sentencas
 			)
