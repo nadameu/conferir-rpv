@@ -32,7 +32,6 @@ export default class PaginaRequisicao extends Pagina {
 	async adicionarAlteracoes() {
 		const win = this.doc.defaultView;
 		win.addEventListener('message', this.onMensagemRecebida.bind(this));
-		// this.linkEditar.addEventListener('click', this.onLinkEditarClicado.bind(this));
 		this.enviarSolicitacaoDados(win.opener);
 	}
 
