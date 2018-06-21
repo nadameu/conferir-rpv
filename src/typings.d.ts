@@ -28,11 +28,13 @@ type DadosHonorario = DadosPagamento & {
 	tipoHonorario:
 		| 'Honorários Contratuais'
 		| 'Devolução à Seção Judiciária'
-		| 'Honorários de Sucumbência';
+		| 'Honorários de Sucumbência'
+		| 'Honorários Periciais';
 };
 
 interface DadosPagamento {
 	anoCorrente: Date;
+	atualizacao: string;
 	beneficiario: string;
 	bloqueado: boolean;
 	codigoTipoDespesa: string;
@@ -45,7 +47,7 @@ interface DadosPagamento {
 	irpf: boolean;
 	mesesAnterior: number;
 	mesesCorrente: number;
-	naturezaTributaria: boolean;
+	naturezaTributaria?: boolean;
 	nome: string;
 	orgaoLotacaoServidor: string;
 	pss: boolean;

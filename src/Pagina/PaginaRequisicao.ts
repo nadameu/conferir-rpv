@@ -261,6 +261,10 @@ export default class PaginaRequisicao extends Pagina {
 			new Padrao(
 				/^<span class="titBold">Incide PSS:<\/span> ?(Sim|Não)$/,
 				'pss'
+			),
+			new Padrao(
+				/^<span class="titBold">Atualização Monetária:\s*<\/span>\s*(.+)$/,
+				'atualizacao'
 			)
 		);
 		analisador.definirConversores({
@@ -775,27 +779,27 @@ export default class PaginaRequisicao extends Pagina {
 		const pagamentos: Pagamento[] = [
 			requisicao.beneficiarios.map(
 				(beneficiario, ordinal): Pagamento => ({
-				tipo: 'beneficiario',
-				ordinal,
-				pagamento: {
-					...beneficiario,
-					valor: { ...beneficiario.valor },
-					ordinaisContratuais: requisicao.honorarios
-						.map((honorario, ordinal) => ({ honorario, ordinal }))
-						.filter(
-							({ honorario: { tipoHonorario } }) =>
-								tipoHonorario === 'Honorários Contratuais'
-						)
-						.filter(
+					tipo: 'beneficiario',
+					ordinal,
+					pagamento: {
+						...beneficiario,
+						valor: { ...beneficiario.valor },
+						ordinaisContratuais: requisicao.honorarios
+							.map((honorario, ordinal) => ({ honorario, ordinal }))
+							.filter(
+								({ honorario: { tipoHonorario } }) =>
+									tipoHonorario === 'Honorários Contratuais'
+							)
+							.filter(
 								({
 									honorario: { beneficiario: nomeBeneficiarioContratuais },
 								}) =>
-								nomeBeneficiarioContratuais.toUpperCase() ===
-								beneficiario.nome.toUpperCase()
-						)
-						.map(({ ordinal }) => ordinal),
-				},
-				prefixo: `gm-requisicao__beneficiario--${ordinal}`,
+									nomeBeneficiarioContratuais.toUpperCase() ===
+									beneficiario.nome.toUpperCase()
+							)
+							.map(({ ordinal }) => ordinal),
+					},
+					prefixo: `gm-requisicao__beneficiario--${ordinal}`,
 				})
 			),
 			requisicao.honorarios
@@ -806,20 +810,20 @@ export default class PaginaRequisicao extends Pagina {
 				)
 				.map(
 					({ honorario, ordinal }): Pagamento => ({
-					tipo: 'honorario',
-					ordinal,
-					pagamento: {
-						...honorario,
-						valor: { ...honorario.valor },
-						maybeOrdinalBeneficiario: requisicao.beneficiarios
-							.map((beneficiario, ordinal) => ({ beneficiario, ordinal }))
-							.filter(
-								({ beneficiario: { nome } }) =>
-									nome.toUpperCase() === honorario.beneficiario.toUpperCase()
-							)
-							.map(({ ordinal }) => ordinal),
-					},
-					prefixo: `gm-requisicao__honorario--${ordinal}`,
+						tipo: 'honorario',
+						ordinal,
+						pagamento: {
+							...honorario,
+							valor: { ...honorario.valor },
+							maybeOrdinalBeneficiario: requisicao.beneficiarios
+								.map((beneficiario, ordinal) => ({ beneficiario, ordinal }))
+								.filter(
+									({ beneficiario: { nome } }) =>
+										nome.toUpperCase() === honorario.beneficiario.toUpperCase()
+								)
+								.map(({ ordinal }) => ordinal),
+						},
+						prefixo: `gm-requisicao__honorario--${ordinal}`,
 					})
 				),
 			requisicao.honorarios
@@ -830,14 +834,14 @@ export default class PaginaRequisicao extends Pagina {
 				)
 				.map(
 					({ honorario, ordinal }): Pagamento => ({
-					tipo: 'honorario',
-					ordinal,
-					pagamento: {
-						...honorario,
-						valor: { ...honorario.valor },
-						maybeOrdinalBeneficiario: [],
-					},
-					prefixo: `gm-requisicao__honorario--${ordinal}`,
+						tipo: 'honorario',
+						ordinal,
+						pagamento: {
+							...honorario,
+							valor: { ...honorario.valor },
+							maybeOrdinalBeneficiario: [],
+						},
+						prefixo: `gm-requisicao__honorario--${ordinal}`,
 					})
 				),
 		].reduce((a, b) => a.concat(b), []);
@@ -889,13 +893,23 @@ export default class PaginaRequisicao extends Pagina {
 				);
 			}
 
+			const naturezaTributaria =
+				ehTributario &&
+				(pagamento.tipo === 'beneficiario' ||
+					pagamento.pagamento.tipoHonorario === 'Honorários Contratuais');
 			if ('naturezaTributaria' in pagamento.pagamento) {
 				this.validarElemento(
 					`.${pagamento.prefixo}__naturezaTributaria`,
-					pagamento.pagamento.naturezaTributaria ===
-						(ehTributario &&
-							(pagamento.tipo === 'beneficiario' ||
-								pagamento.pagamento.tipoHonorario === 'Honorários Contratuais'))
+					pagamento.pagamento.naturezaTributaria === naturezaTributaria
+				);
+			} else {
+				const atualizacaoCorreta =
+					naturezaTributaria !==
+					(pagamento.pagamento.atualizacao ===
+						'IPCA-E mais Juros de Mora Fix.no Tít. Executivo');
+				this.validarElemento(
+					`.${pagamento.prefixo}__atualizacao`,
+					atualizacaoCorreta
 				);
 			}
 
