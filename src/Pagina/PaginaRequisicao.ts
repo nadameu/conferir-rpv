@@ -18,7 +18,7 @@ import Pagina from './Pagina';
 import Padrao from '../Padrao';
 import Requisicao from '../Requisicao';
 import * as Utils from '../Utils';
-import Mensagem from '../Mensagem';
+import { Mensagem } from '../Mensagem';
 
 export default class PaginaRequisicao extends Pagina {
 	private _requisicao?: Requisicao;
@@ -474,7 +474,7 @@ export default class PaginaRequisicao extends Pagina {
 			let porcentagemAdvogado = 1 - beneficiario.valor.total / total;
 			let porcentagemArredondada = Utils.round(porcentagemAdvogado * 100, 0);
 			let calculoAdvogado = Utils.round(
-				total * porcentagemArredondada / 100,
+				(total * porcentagemArredondada) / 100,
 				2
 			);
 			let pagoAdvogado = Utils.round(total - beneficiario.valor.total, 2);
@@ -546,7 +546,7 @@ export default class PaginaRequisicao extends Pagina {
 				const somaHonorarios = valoresHonorarios.reduce((a, b) => a + b, 0);
 				const porcentagens = valoresHonorarios
 					.map(valor => valor / somaHonorarios)
-					.map(pct => pct * porcentagemArredondada / 100)
+					.map(pct => (pct * porcentagemArredondada) / 100)
 					.map(pct => ConversorPorcentagem.converter(pct));
 				const advogados = honorarios
 					.map(honorario => honorario.nome)
@@ -773,7 +773,8 @@ export default class PaginaRequisicao extends Pagina {
 			| { tipo: 'beneficiario'; pagamento: PagamentoBeneficiario });
 
 		const pagamentos: Pagamento[] = [
-			requisicao.beneficiarios.map((beneficiario, ordinal): Pagamento => ({
+			requisicao.beneficiarios.map(
+				(beneficiario, ordinal): Pagamento => ({
 				tipo: 'beneficiario',
 				ordinal,
 				pagamento: {
@@ -786,21 +787,25 @@ export default class PaginaRequisicao extends Pagina {
 								tipoHonorario === 'Honorários Contratuais'
 						)
 						.filter(
-							({ honorario: { beneficiario: nomeBeneficiarioContratuais } }) =>
+								({
+									honorario: { beneficiario: nomeBeneficiarioContratuais },
+								}) =>
 								nomeBeneficiarioContratuais.toUpperCase() ===
 								beneficiario.nome.toUpperCase()
 						)
 						.map(({ ordinal }) => ordinal),
 				},
 				prefixo: `gm-requisicao__beneficiario--${ordinal}`,
-			})),
+				})
+			),
 			requisicao.honorarios
 				.map((honorario, ordinal) => ({ honorario, ordinal }))
 				.filter(
 					({ honorario: { tipoHonorario } }) =>
 						tipoHonorario === 'Honorários Contratuais'
 				)
-				.map(({ honorario, ordinal }): Pagamento => ({
+				.map(
+					({ honorario, ordinal }): Pagamento => ({
 					tipo: 'honorario',
 					ordinal,
 					pagamento: {
@@ -815,14 +820,16 @@ export default class PaginaRequisicao extends Pagina {
 							.map(({ ordinal }) => ordinal),
 					},
 					prefixo: `gm-requisicao__honorario--${ordinal}`,
-				})),
+					})
+				),
 			requisicao.honorarios
 				.map((honorario, ordinal) => ({ honorario, ordinal }))
 				.filter(
 					({ honorario: { tipoHonorario } }) =>
 						tipoHonorario !== 'Honorários Contratuais'
 				)
-				.map(({ honorario, ordinal }): Pagamento => ({
+				.map(
+					({ honorario, ordinal }): Pagamento => ({
 					tipo: 'honorario',
 					ordinal,
 					pagamento: {
@@ -831,7 +838,8 @@ export default class PaginaRequisicao extends Pagina {
 						maybeOrdinalBeneficiario: [],
 					},
 					prefixo: `gm-requisicao__honorario--${ordinal}`,
-				})),
+					})
+				),
 		].reduce((a, b) => a.concat(b), []);
 
 		const LIMITE = 60 * SALARIO_MINIMO;
@@ -1016,7 +1024,7 @@ export default class PaginaRequisicao extends Pagina {
 								principal: princAdv,
 								total: totalAdv,
 							} = pagamento.pagamento.valor;
-							const razao = princBen * totalAdv / (totalBen * princAdv);
+							const razao = (princBen * totalAdv) / (totalBen * princAdv);
 							this.validarElemento(
 								`.${pagamento.prefixo}__valor`,
 								Math.abs(razao - 1) < 0.005

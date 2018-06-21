@@ -6,7 +6,7 @@ import './PaginaProcesso.scss';
 import Acoes from '../Acoes';
 import BotaoAcao from '../BotaoAcao';
 import { ConversorData, ConversorDataHora } from '../Conversor';
-import Mensagem from '../Mensagem';
+import { Mensagem } from '../Mensagem';
 import Pagina from './Pagina';
 import { PaginaListar } from './index';
 import * as Utils from '../Utils';
@@ -448,44 +448,46 @@ export default class PaginaProcesso extends Pagina {
 			Array.from((await this.obterTabelaEventos()).tBodies)
 				.map(tbody => Array.from(tbody.rows))
 				.reduce((a, b) => a.concat(b), [])
-				.map((linha): Option.Option<DadosEvento> => {
-					const documentos = array.catOptions(
-						linksDocumentosLinha(linha).map(link =>
-							Option.fromNullable(link.textContent)
-								.mapNullable(texto => texto.match(/^(.*?)(\d+)$/))
-								.map(([nome, tipo, ordem]) => ({
-									ordem: Utils.parseDecimalInt(ordem),
-									nome,
-									tipo,
-								}))
-						)
-					);
+				.map(
+					(linha): Option.Option<DadosEvento> => {
+						const documentos = array.catOptions(
+							linksDocumentosLinha(linha).map(link =>
+								Option.fromNullable(link.textContent)
+									.mapNullable(texto => texto.match(/^(.*?)(\d+)$/))
+									.map(([nome, tipo, ordem]) => ({
+										ordem: Utils.parseDecimalInt(ordem),
+										nome,
+										tipo,
+									}))
+							)
+						);
 
-					if (documentos.length > 0) {
-						linha.classList.add('gmEventoDestacado');
+						if (documentos.length > 0) {
+							linha.classList.add('gmEventoDestacado');
 
-						const optionEvento = Option.fromNullable(linha.cells[1])
-							.mapNullable(c => c.textContent)
-							.map(t => Utils.parseDecimalInt(t));
-						const optionData = Option.fromNullable(linha.cells[2])
-							.mapNullable(c => c.textContent)
-							.map(t => ConversorDataHora.analisar(t));
-						const optionDescricao = Option.fromNullable(linha.cells[3])
-							.mapNullable(c => c.querySelector('label.infraEventoDescricao'))
-							.mapNullable(c => c.textContent);
+							const optionEvento = Option.fromNullable(linha.cells[1])
+								.mapNullable(c => c.textContent)
+								.map(t => Utils.parseDecimalInt(t));
+							const optionData = Option.fromNullable(linha.cells[2])
+								.mapNullable(c => c.textContent)
+								.map(t => ConversorDataHora.analisar(t));
+							const optionDescricao = Option.fromNullable(linha.cells[3])
+								.mapNullable(c => c.querySelector('label.infraEventoDescricao'))
+								.mapNullable(c => c.textContent);
 
-						return liftA3(Option.option)(
-							(evento: number) => (data: Date) => (descricao: string) => ({
-								evento,
-								data,
-								descricao,
-								documentos,
-							})
-						)(optionEvento)(optionData)(optionDescricao);
-					} else {
-						return Option.none;
+							return liftA3(Option.option)(
+								(evento: number) => (data: Date) => (descricao: string) => ({
+									evento,
+									data,
+									descricao,
+									documentos,
+								})
+							)(optionEvento)(optionData)(optionDescricao);
+						} else {
+							return Option.none;
+						}
 					}
-				})
+				)
 		);
 	}
 

@@ -1,6 +1,6 @@
 import Acoes from '../Acoes';
 import BotaoAcao from '../BotaoAcao';
-import Mensagem from '../Mensagem';
+import { Mensagem } from '../Mensagem';
 import Pagina from './Pagina';
 import parseDecimalInt from '../Utils/parseDecimalInt';
 import { lefts, rights } from '../Utils/promises';

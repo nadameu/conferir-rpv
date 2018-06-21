@@ -34,7 +34,7 @@ interface MensagemVerificarJanela {
 	acao: Acoes.VERIFICAR_JANELA;
 }
 
-type Mensagem =
+export type Mensagem =
 	| MensagemAbrirDocumento
 	| MensagemAbrirRequisicao
 	| MensagemBuscarDados
@@ -42,4 +42,3 @@ type Mensagem =
 	| MensagemOrdemConfirmada
 	| MensagemRespostaJanelaAberta
 	| MensagemVerificarJanela;
-export default Mensagem;
