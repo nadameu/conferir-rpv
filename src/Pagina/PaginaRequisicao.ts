@@ -140,7 +140,7 @@ export default class PaginaRequisicao extends Pagina {
 		analisador.analisarInto(tabela, requisicao);
 
 		let elementoAtual = tabela.nextElementSibling;
-		let modo: 'Beneficiários' | 'Honorários' | null = null;
+		let modo: 'Beneficiários' | 'Honorários' | 'Multa' | null = null;
 		let ordinal = 0;
 		while (elementoAtual) {
 			if (elementoAtual.matches('table')) {
@@ -151,6 +151,12 @@ export default class PaginaRequisicao extends Pagina {
 				} else if ((tabelaAtual.textContent || '').trim() === 'Honorários') {
 					modo = 'Honorários';
 					ordinal = 0;
+				} else if (
+					(tabelaAtual.textContent || '').trim() ===
+					'Reembolsos/Deduções/Multas'
+				) {
+					modo = 'Multa';
+					ordinal = 0;
 				} else if (modo === 'Beneficiários') {
 					requisicao.beneficiarios.push(
 						this.analisarTabelaBeneficiarios(tabelaAtual, ordinal++)
@@ -159,6 +165,8 @@ export default class PaginaRequisicao extends Pagina {
 					requisicao.honorarios.push(
 						this.analisarTabelaHonorarios(tabelaAtual, ordinal++)
 					);
+				} else if (modo === 'Multa') {
+					// Não analisar
 				} else {
 					console.error('Tabela não analisada!', tabelaAtual);
 					throw new Error('Tabela não analisada!');
@@ -1000,7 +1008,6 @@ export default class PaginaRequisicao extends Pagina {
 						`.${pagamento.prefixo}__especie`,
 						diferenca <= 0
 					);
-					console.log(diferenca);
 				} else {
 					this.validarElemento(
 						`.${pagamento.prefixo}__especie`,
