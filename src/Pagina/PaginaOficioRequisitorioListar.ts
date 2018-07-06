@@ -320,24 +320,37 @@ function buscarDados<T extends XMLHttpRequestResponseType = 'document'>(
 
 let datas: Map<number, Date> = new Map();
 function carregarDatasSalvas() {
-	const dados: [number, string][] = JSON.parse(
+	const dados: [number, number][] = JSON.parse(
 		localStorage.getItem('datas-transito') || '[]'
 	);
 	datas = new Map(
-		dados.map<[number, Date]>(([numero, data]) => [
-			numero,
-			ConversorData.analisar(data),
-		])
+		dados.reduce<{ last: [number, number]; arr: [number, Date][] }>(
+			({ last: [last, lastDt], arr }, [numero, data]) => {
+				return {
+					last: [last + numero, lastDt + data],
+					arr: arr.concat([[last + numero, new Date((lastDt + data) * 36e5)]]),
+				};
+			},
+			{ last: [0, 0], arr: [] }
+		).arr
 	);
 }
 function salvarDatas() {
 	localStorage.setItem(
 		'datas-transito',
 		JSON.stringify(
-			Array.from(datas).map<[number, string]>(([numero, data]) => [
-				numero,
-				ConversorData.converter(data),
-			])
+			Array.from(datas)
+				.sort(([a], [b]) => a - b)
+				.reduce<{ last: [number, number]; arr: [number, number][] }>(
+					({ last: [last, lastDt], arr }, [numero, data]) => {
+						const dt = Math.round(data.getTime() / 36e5);
+						return {
+							last: [numero, dt],
+							arr: arr.concat([[numero - last, dt - lastDt]]),
+						};
+					},
+					{ last: [0, 0], arr: [] }
+				).arr
 		)
 	);
 }
