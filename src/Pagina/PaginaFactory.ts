@@ -24,7 +24,7 @@ const classesPorAcao: { [acao: string]: PaginaConstrutor } = {
 
 const paginas: WeakMap<Document, PaginaComAlteracoes> = new WeakMap();
 
-export function analisar(doc: Document) {
+export default function analisar(doc: Document) {
 	if (paginas.has(doc)) {
 		return Promise.resolve(<PaginaComAlteracoes>paginas.get(doc));
 	}

@@ -1,6 +1,5 @@
-import 'babel-polyfill';
 import './includes/estilos.scss';
-import { analisar } from './Pagina/PaginaFactory';
+import analisar from './Pagina/PaginaFactory';
 
 async function main() {
 	const pagina = await analisar(document);
