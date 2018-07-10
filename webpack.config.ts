@@ -21,14 +21,17 @@ const defaultConfig: webpack.Configuration = {
 				test: /\.(tsx?)|(js)$/,
 				exclude: /node_modules/,
 				loader: 'babel-loader',
+				sideEffects: false,
 			},
 			{
 				test: /\.s?css$/,
 				use: ['style-loader', 'css-loader', 'sass-loader'],
+				sideEffects: true,
 			},
 			{
 				test: /\.html$/,
 				use: ['raw-loader'],
+				sideEffects: false,
 			},
 		],
 	},
