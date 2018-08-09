@@ -120,7 +120,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 	async obterDadosOficios(): Promise<DadosOficios> {
 		const links = await Promise.all(
 			this.queryAll<HTMLImageElement>(
-				'img[src$="/infra_css/imagens/lupa.gif"]'
+				'img[src$="infra_css/imagens/lupa.gif"]'
 			).map(lupa => queryParent<HTMLAnchorElement>(lupa, 'a[href]'))
 		);
 		if (links.length === 0)
