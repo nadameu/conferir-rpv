@@ -1,5 +1,5 @@
 {
-	"name": "preencher-rpv",
+	"name": "precatorios-rpv",
 	"version": "21.0.0",
 	"description": "Auxilia a conferência de RPVs e precatórios.",
 	"main": "src/index.ts",
@@ -13,14 +13,14 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/nadameu/preencher-rpv.git"
+		"url": "git+https://github.com/nadameu/precatorios-rpv.git"
 	},
 	"author": "nadameu",
 	"license": "GPL-3.0",
 	"bugs": {
-		"url": "https://github.com/nadameu/preencher-rpv/issues"
+		"url": "https://github.com/nadameu/precatorios-rpv/issues"
 	},
-	"homepage": "https://github.com/nadameu/preencher-rpv#readme",
+	"homepage": "https://github.com/nadameu/precatorios-rpv#readme",
 	"devDependencies": {
 		"@babel/cli": "^7.0.0-beta.42",
 		"@babel/core": "^7.0.0-beta.42",
