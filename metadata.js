@@ -13,6 +13,6 @@ export default {
 		'https://github.com/nadameu/greasemonkey/raw/master/precatorios-rpv.user.js',
 	updateURL:
 		'https://github.com/nadameu/greasemonkey/raw/master/precatorios-rpv.meta.js',
-	supportURL: 'https://github.com/nadameu/conferir-rpv/issues',
+	supportURL: 'https://github.com/nadameu/precatorios-rpv/issues',
 	grant: 'GM_xmlhttpRequest',
 };
