@@ -1,3 +1,4 @@
+import './PaginaOficioRequisitorioListar.scss';
 import BotaoAcao from '../BotaoAcao';
 import Pagina from './Pagina';
 import { ConversorData } from '../Conversor';
@@ -44,6 +45,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		fragment.appendChild(botaoLimparCache);
 		botaoLimparCache.insertAdjacentHTML('afterend', '&nbsp;\n');
 		barra.insertBefore(fragment, barra.firstChild);
+		this.observarUltimoLinkClicado();
 	}
 
 	async adicionarBotaoCarregarPaginas() {
@@ -141,6 +143,19 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		return { linhas, tabela, urls };
 	}
 
+	observarUltimoLinkClicado() {
+		const links = this.queryAll<HTMLAnchorElement>(
+			'#divInfraAreaTabela > table > tbody > tr > td:nth-child(3) > a[href="#None"]'
+		);
+		if (links.length === 0) {
+			console.log('Sem links a analisar.');
+			return;
+		}
+		links.forEach(link => {
+			link.classList.add('extraLinkOficioRequisitorio');
+		});
+	}
+
 	onBotaoCarregarPaginasClicked(dados: DadosPaginacao, evt: Event) {
 		evt.preventDefault();
 		if (this._isLoadingPages) return;
@@ -208,7 +223,8 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 			.then(() => {
 				botao.textContent = originalText;
 				this._isLoadingPages = false;
-			});
+			})
+			.then(() => this.observarUltimoLinkClicado());
 	}
 
 	onBotaoOrdenarClicked(evt: Event) {
