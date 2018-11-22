@@ -14,7 +14,14 @@ const ConversorData: AnalisadorConversor<Date> = {
 		);
 	},
 	converter(valor) {
-		return valor.toLocaleDateString('pt-BR');
+		const [ano, mes, dia] = [
+			valor.getFullYear(),
+			valor.getMonth() + 1,
+			valor.getDate(),
+		]
+			.map(String)
+			.map(x => x.padStart(2, '0'));
+		return `${dia}/${mes}/${ano}`;
 	},
 };
 

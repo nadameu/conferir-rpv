@@ -20,7 +20,17 @@ const ConversorDataHora: AnalisadorConversor<Date> = {
 	},
 
 	converter(valor) {
-		return valor.toLocaleString('pt-BR');
+		const [ano, mes, dia, hora, minuto, segundo] = [
+			valor.getFullYear(),
+			valor.getMonth() + 1,
+			valor.getDate(),
+			valor.getHours(),
+			valor.getMinutes(),
+			valor.getSeconds(),
+		]
+			.map(String)
+			.map(x => x.padStart(2, '0'));
+		return `${dia}/${mes}/${ano} ${hora}:${minuto}:${segundo}`;
 	},
 };
 

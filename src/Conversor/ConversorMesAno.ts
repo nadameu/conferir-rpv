@@ -10,10 +10,10 @@ const ConversorMesAno: AnalisadorConversor<Date> = {
 		return new Date(parseDecimalInt(y), parseDecimalInt(m) - 1, 1);
 	},
 	converter(valor) {
-		return valor.toLocaleDateString('pt-BR', {
-			month: 'numeric',
-			year: 'numeric',
-		});
+		const [ano, mes] = [valor.getFullYear(), valor.getMonth() + 1]
+			.map(String)
+			.map(x => x.padStart(2, '0'));
+		return `${mes}/${ano}`;
 	},
 };
 

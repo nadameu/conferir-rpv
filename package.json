@@ -40,9 +40,8 @@
 		"css-loader": "^0.28.11",
 		"detect-node": "^2.0.3",
 		"jest": "^22.4.3",
-		"node-sass": "^4.8.3",
+		"jsverify": "^0.8.4",
 		"raw-loader": "^0.5.1",
-		"sass-loader": "^6.0.7",
 		"style-loader": "^0.20.3",
 		"ts-jest": "^22.4.2",
 		"ts-node": "^5.0.1",
@@ -54,7 +53,6 @@
 	},
 	"dependencies": {
 		"@babel/runtime": "^7.0.0-beta.52",
-		"fp-ts": "^1.2.0",
-		"intl": "^1.2.5"
+		"fp-ts": "^1.2.0"
 	}
 }

@@ -1,6 +1,6 @@
 import ConversorMoeda from './ConversorMoeda';
 
-const ConversorValores: Analisador<Valores> = {
+const ConversorValores: AnalisadorConversor<Valores> = {
 	analisar(texto): Valores {
 		const match = texto.match(/^([\d.,]+)\s+\(([\d.,]+) \+ ([\d.,]+)\)$/);
 		if (!match || match.length !== 4) {
@@ -12,6 +12,11 @@ const ConversorValores: Analisador<Valores> = {
 			juros: ConversorMoeda.analisar(juros),
 			total: ConversorMoeda.analisar(total),
 		};
+	},
+	converter({ principal, juros, total }) {
+		return `${ConversorMoeda.converter(total)} (${ConversorMoeda.converter(
+			principal
+		)} + ${ConversorMoeda.converter(juros)})`;
 	},
 };
 
