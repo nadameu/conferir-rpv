@@ -1,7 +1,7 @@
 import './PaginaOficioRequisitorioListar.css';
 import BotaoAcao from '../BotaoAcao';
 import Pagina from './Pagina';
-import { ConversorData } from '../Conversor';
+import { ConversorData, ConversorPorcentagem } from '../Conversor';
 
 type DadosPaginacao = {
 	caption: HTMLTableCaptionElement;
@@ -241,15 +241,15 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 			return limitConcurrency(
 				4,
 				url => {
-					const textoPorcentagem = porcentagem.toLocaleString('pt-BR', {
-						style: 'percent',
-					});
+					const textoPorcentagem = ConversorPorcentagem.converter(
+						Math.round(porcentagem * 100) / 100
+					);
 					botao.textContent = `Carregando dados... ${textoPorcentagem}`;
 					return buscarDataTransito(url).then(data => {
 						porcentagem += step;
-						const textoPorcentagem = porcentagem.toLocaleString('pt-BR', {
-							style: 'percent',
-						});
+						const textoPorcentagem = ConversorPorcentagem.converter(
+							Math.round(porcentagem * 100) / 100
+						);
 						botao.textContent = `Carregando dados... ${textoPorcentagem}`;
 						return data;
 					});
@@ -276,7 +276,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 								String(i + 1).padStart(3, '0')
 							);
 							const celulaTransito = linha.insertCell(linha.cells.length);
-							celulaTransito.textContent = data.toLocaleDateString();
+							celulaTransito.textContent = ConversorData.converter(data);
 							return frag;
 						}, this.doc.createDocumentFragment())
 					);
