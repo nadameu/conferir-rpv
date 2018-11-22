@@ -6,8 +6,7 @@ const ConversorAno: AnalisadorConversor<Date> = {
 		if (!match || match.length !== 1) {
 			throw new TypeError(`Valor não corresponde a um ano: "${texto}".`);
 		}
-		const [y] = match;
-		return new Date(parseDecimalInt(y), 0, 1);
+		return new Date(parseDecimalInt(match[0]), 0);
 	},
 	converter(valor) {
 		return valor.getFullYear().toString();

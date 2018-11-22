@@ -3,16 +3,17 @@ const ConversorMoeda: AnalisadorConversor<number> = {
 		return parseFloat(texto.replace(/\./g, '').replace(/,/, '.'));
 	},
 	converter(valor) {
-		return valor
-			.toLocaleString('en-US', {
-				useGrouping: true,
-				minimumIntegerDigits: 1,
-				minimumFractionDigits: 2,
-				maximumFractionDigits: 2,
-			})
-			.replace('.', 'VIRGULA')
-			.replace(/,/g, '.')
-			.replace('VIRGULA', ',');
+		const valorArredondado = Math.round(valor * 100) / 100;
+		let [reaisComSinal, centavos] = valorArredondado.toFixed(2).split('.');
+		let [, sinal, reais] = reaisComSinal.match(
+			/^(-?)(\d+)$/
+		) as RegExpMatchArray;
+		let final = '';
+		while (reais.length > 3) {
+			final = `.${reais.substr(-3)}` + final;
+			reais = reais.substr(0, reais.length - 3);
+		}
+		return `${sinal || ''}${reais}${final},${centavos}`;
 	},
 };
 
