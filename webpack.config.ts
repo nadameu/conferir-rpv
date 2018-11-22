@@ -24,8 +24,8 @@ const defaultConfig: webpack.Configuration = {
 				sideEffects: false,
 			},
 			{
-				test: /\.s?css$/,
-				use: ['style-loader', 'css-loader', 'sass-loader'],
+				test: /\.css$/,
+				use: ['style-loader', 'css-loader'],
 				sideEffects: true,
 			},
 			{

@@ -1,4 +1,4 @@
-import './includes/estilos.scss';
+import './includes/estilos.css';
 import analisar from './Pagina/PaginaFactory';
 
 async function main() {

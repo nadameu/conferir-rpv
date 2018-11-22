@@ -2,7 +2,7 @@ import { liftA3, liftA2 } from 'fp-ts/lib/Apply';
 import * as array from 'fp-ts/lib/Array';
 import * as Option from 'fp-ts/lib/Option';
 
-import './PaginaProcesso.scss';
+import './PaginaProcesso.css';
 import Acoes from '../Acoes';
 import BotaoAcao from '../BotaoAcao';
 import { ConversorData, ConversorDataHora } from '../Conversor';

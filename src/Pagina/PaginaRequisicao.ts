@@ -1,4 +1,4 @@
-import './PaginaRequisicao.scss';
+import './PaginaRequisicao.css';
 import Acoes from '../Acoes';
 import AnalisadorLinhasTabela from '../AnalisadorLinhasTabela';
 import BotaoAcao from '../BotaoAcao';

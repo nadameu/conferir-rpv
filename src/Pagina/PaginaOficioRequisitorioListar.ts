@@ -1,4 +1,4 @@
-import './PaginaOficioRequisitorioListar.scss';
+import './PaginaOficioRequisitorioListar.css';
 import BotaoAcao from '../BotaoAcao';
 import Pagina from './Pagina';
 import { ConversorData } from '../Conversor';
