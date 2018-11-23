@@ -1,10 +1,6 @@
 export default function compose<A, B>(ab: Fn<A, B>): Fn<A, B>;
 export default function compose<A, B, C>(bc: Fn<B, C>, ab: Fn<A, B>): Fn<A, C>;
-export default function compose<A, B, C, D>(
-	cd: Fn<C, D>,
-	bc: Fn<B, C>,
-	ab: Fn<A, B>
-): Fn<A, D>;
+export default function compose<A, B, C, D>(cd: Fn<C, D>, bc: Fn<B, C>, ab: Fn<A, B>): Fn<A, D>;
 export default function compose<A, B, C, D, E>(
 	de: Fn<D, E>,
 	cd: Fn<C, D>,

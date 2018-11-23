@@ -1,4 +1,4 @@
 declare module 'userscript-meta' {
-	export const parse: (m: string) => Object;
-	export const stringify: (m: Object) => string;
+	export function parse(meta: string): Object;
+	export function stringify(obj: Object): string;
 }

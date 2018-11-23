@@ -9,9 +9,7 @@ const datasValidas = jsc.suchthat(
 test('analisar', () => {
 	jsc.assertForall(
 		datasValidas,
-		data =>
-			ConversorAno.analisar(String(data.getFullYear())).getFullYear() ===
-			data.getFullYear()
+		data => ConversorAno.analisar(String(data.getFullYear())).getFullYear() === data.getFullYear()
 	);
 });
 

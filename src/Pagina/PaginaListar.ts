@@ -35,9 +35,7 @@ const promiseTexto = (elemento: Element) => {
 };
 
 const obterCelulaLinha = (linha: HTMLTableRowElement, index: number) =>
-	Promise.resolve(linha.cells as HTMLCollectionOf<HTMLTableCellElement>).then(
-		promiseIndex(index)
-	);
+	Promise.resolve(linha.cells as HTMLCollectionOf<HTMLTableCellElement>).then(promiseIndex(index));
 
 const makeObterFromLinha = (linha: HTMLTableRowElement) => {
 	const obterCelula = (index: number) => obterCelulaLinha(linha, index);
@@ -47,8 +45,7 @@ const makeObterFromLinha = (linha: HTMLTableRowElement) => {
 			.then(celula => celula.querySelectorAll<T>(selector))
 			.then(collection => Array.from(collection));
 
-	const obterNumero = (index: number) =>
-		obterTexto(index).then(parseDecimalInt);
+	const obterNumero = (index: number) => obterTexto(index).then(parseDecimalInt);
 
 	const obterTexto = (index: number) =>
 		obterCelula(index)
@@ -59,21 +56,17 @@ const makeObterFromLinha = (linha: HTMLTableRowElement) => {
 };
 
 const makeObterHref = (urls: URL[]) => (param: string, expected?: string) => {
-	const filtradas = urls.filter(
-		url => url.searchParams.get(param) === expected
-	);
+	const filtradas = urls.filter(url => url.searchParams.get(param) === expected);
 	return filtradas.length === 0
 		? Promise.reject(
-				new LinkNotFoundError(
-					`Não há URL com o parâmetro "${param}" igual a "${expected}".`
-				)
+				new LinkNotFoundError(`Não há URL com o parâmetro "${param}" igual a "${expected}".`)
 		  )
 		: Promise.resolve(filtradas[0].href);
 };
 
 export default class PaginaListar extends Pagina {
 	async adicionarAlteracoes() {
-		const win = this.doc.defaultView;
+		const win = this.getWindow();
 		const opener = win.opener;
 		await this.testarJanelaProcessoAberta();
 		const requisicoes = await this.obterRequisicoes();
@@ -106,10 +99,7 @@ export default class PaginaListar extends Pagina {
 			numero,
 			status,
 			urlConsultar: await obterHref('acao', 'oficio_requisitorio_visualizar'),
-			urlEditar: await obterHref(
-				'acao',
-				'oficio_requisitorio_requisicoes_editar'
-			),
+			urlEditar: await obterHref('acao', 'oficio_requisitorio_requisicoes_editar'),
 		};
 		return req;
 	}
@@ -124,10 +114,7 @@ export default class PaginaListar extends Pagina {
 				.filter(erro => !(erro instanceof LinkNotFoundError))
 				.forEach(erro => {
 					console.log('instanceof Error', erro instanceof Error);
-					console.log(
-						'instanceof LinkNotFound',
-						erro instanceof LinkNotFoundError
-					);
+					console.log('instanceof LinkNotFound', erro instanceof LinkNotFoundError);
 					console.warn(erro);
 				});
 		});
@@ -139,11 +126,11 @@ export default class PaginaListar extends Pagina {
 			acao: Acoes.ABRIR_REQUISICAO,
 			requisicao: requisicao,
 		};
-		janela.postMessage(JSON.stringify(data), this.doc.location.origin);
+		janela.postMessage(JSON.stringify(data), this.getLocation().origin);
 	}
 
 	async testarJanelaProcessoAberta() {
-		const win = this.doc.defaultView;
+		const win = this.getWindow();
 		const opener: Window | null = win.opener;
 
 		if (!opener || opener === win) {
@@ -155,27 +142,22 @@ export default class PaginaListar extends Pagina {
 		});
 
 		const aguardarMensagem = new Promise<boolean>((res, rej) => {
-			win.addEventListener(
-				'message',
-				({ origin, data }) => {
-					if (origin === this.doc.location.origin) {
-						const { acao } = JSON.parse(data);
-						if (acao === Acoes.RESPOSTA_JANELA_ABERTA) {
-							return res(true);
-						}
+			const handler = ({ origin, data }: MessageEvent) => {
+				if (origin === this.getLocation().origin) {
+					const { acao } = JSON.parse(data);
+					if (acao === Acoes.RESPOSTA_JANELA_ABERTA) {
+						win.removeEventListener('message', handler);
+						return res(true);
 					}
-					rej(
-						new Error(`Janela do processo não encontrada. ${origin}, ${data}`)
-					);
-				},
-				{ once: true }
-			);
+				}
+			};
+			win.addEventListener('message', handler);
 		});
 
 		const data: Mensagem = {
 			acao: Acoes.VERIFICAR_JANELA,
 		};
-		opener.postMessage(JSON.stringify(data), this.doc.location.origin);
+		opener.postMessage(JSON.stringify(data), this.getLocation().origin);
 
 		return Promise.race([aguardarMensagem, demorouDemais]);
 	}

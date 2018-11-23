@@ -1,10 +1,9 @@
 import parseDecimalInt from '../Utils/parseDecimalInt';
+import padStart from '../Utils/padStart';
 
 const ConversorDataHora: AnalisadorConversor<Date> = {
 	analisar(texto) {
-		const match = texto.match(
-			/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/
-		);
+		const match = texto.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
 		if (!match || match.length !== 7) {
 			throw new TypeError(`Valor não corresponde a uma data/hora: "${texto}".`);
 		}
@@ -29,7 +28,7 @@ const ConversorDataHora: AnalisadorConversor<Date> = {
 			valor.getSeconds(),
 		]
 			.map(String)
-			.map(x => x.padStart(2, '0'));
+			.map(x => padStart(x, 2, '0'));
 		return `${dia}/${mes}/${ano} ${hora}:${minuto}:${segundo}`;
 	},
 };

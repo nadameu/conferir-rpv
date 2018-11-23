@@ -1,11 +1,14 @@
 import Pagina from './Pagina';
+import safePipe from '../Utils/safePipe';
 
 export default class PaginaRedirecionamento extends Pagina {
 	async adicionarAlteracoes() {}
 
 	async getUrlRedirecionamento() {
-		const match = this.doc.documentElement.innerHTML.match(
-			/window\.location = '([^']+)';/
+		const match = safePipe(
+			this.doc.documentElement,
+			x => x.innerHTML,
+			x => x.match(/window\.location = '([^']+)';/)
 		);
 		if (match) {
 			return match[1];

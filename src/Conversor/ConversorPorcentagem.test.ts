@@ -9,10 +9,7 @@ test('analisar', () => {
 });
 
 test('converter', () => {
-	jsc.assertForall(
-		jsc.number,
-		num => ConversorPorcentagem.converter(num) === valorParaTexto(num)
-	);
+	jsc.assertForall(jsc.number, num => ConversorPorcentagem.converter(num) === valorParaTexto(num));
 });
 
 function valorParaTexto(num: number) {

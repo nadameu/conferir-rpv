@@ -1,4 +1,5 @@
 import parseDecimalInt from '../Utils/parseDecimalInt';
+import padStart from '../Utils/padStart';
 
 const ConversorMesAno: AnalisadorConversor<Date> = {
 	analisar(texto) {
@@ -12,7 +13,7 @@ const ConversorMesAno: AnalisadorConversor<Date> = {
 	converter(valor) {
 		const [ano, mes] = [valor.getFullYear(), valor.getMonth() + 1]
 			.map(String)
-			.map(x => x.padStart(2, '0'));
+			.map(x => padStart(x, 2, '0'));
 		return `${mes}/${ano}`;
 	},
 };

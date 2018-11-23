@@ -16,10 +16,7 @@ test('analisar', () => {
 });
 
 test('converter', () => {
-	jsc.assertForall(
-		jsc.datetime,
-		data => ConversorDataHora.converter(data) === dataParaTexto(data)
-	);
+	jsc.assertForall(jsc.datetime, data => ConversorDataHora.converter(data) === dataParaTexto(data));
 });
 
 function dataParaTexto(data: Date) {
@@ -34,9 +31,6 @@ function dataParaTexto(data: Date) {
 			second: '2-digit',
 		})
 		.split(/[/, :]/g);
-	const texto = [
-		[dia, mes, ano].join('/'),
-		[hora, minuto, segundo].join(':'),
-	].join(' ');
+	const texto = [[dia, mes, ano].join('/'), [hora, minuto, segundo].join(':')].join(' ');
 	return texto;
 }

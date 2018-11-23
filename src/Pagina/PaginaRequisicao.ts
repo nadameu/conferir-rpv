@@ -1,4 +1,3 @@
-import './PaginaRequisicao.css';
 import Acoes from '../Acoes';
 import AnalisadorLinhasTabela from '../AnalisadorLinhasTabela';
 import BotaoAcao from '../BotaoAcao';
@@ -20,6 +19,8 @@ import Requisicao from '../Requisicao';
 import * as Utils from '../Utils';
 import { Mensagem } from '../Mensagem';
 
+const estilos = require('./PaginaRequisicao.css');
+
 export default class PaginaRequisicao extends Pagina {
 	private _requisicao?: Requisicao;
 	async obterRequisicao() {
@@ -30,17 +31,15 @@ export default class PaginaRequisicao extends Pagina {
 	}
 
 	async adicionarAlteracoes() {
-		const win = this.doc.defaultView;
+		GM_addStyle(estilos);
+		const win = this.getWindow();
 		win.addEventListener('message', this.onMensagemRecebida.bind(this));
 		this.enviarSolicitacaoDados(win.opener);
 	}
 
 	async adicionarAreaDocumentosProcesso() {
 		const areaTabela = await this.query('#divInfraAreaTabela');
-		areaTabela.insertAdjacentHTML(
-			'beforeend',
-			'<div class="gm-documentos"></div>'
-		);
+		areaTabela.insertAdjacentHTML('beforeend', '<div class="gm-documentos"></div>');
 	}
 
 	async adicionarBotaoTelaIntimacao() {
@@ -64,35 +63,20 @@ export default class PaginaRequisicao extends Pagina {
 	async analisarDadosRequisicao() {
 		const analisador = new AnalisadorLinhasTabela(
 			new Padrao(/^<span class="titBold">Status:<\/span> (.*?)$/, 'status'),
-			new Padrao(
-				/^<span class="titBold">Originário Jef:<\/span> (.*?)$/,
-				'originarioJEF'
-			),
-			new Padrao(
-				/^<span class="titBold">Extra Orçamentária:<\/span> (.*?)$/,
-				'extraorcamentaria'
-			),
+			new Padrao(/^<span class="titBold">Originário Jef:<\/span> (.*?)$/, 'originarioJEF'),
+			new Padrao(/^<span class="titBold">Extra Orçamentária:<\/span> (.*?)$/, 'extraorcamentaria'),
 			new Padrao(
 				/^<span class="titBold">Processo Eletrônico:<\/span> (.*?)$/,
 				'processoEletronico'
 			),
 			new Padrao(/^<span class="titBold">Juízo:<\/span> (.*?)$/, 'juizo'),
-			new Padrao(
-				/^<span class="titBold">Ação de Execução:<\/span> (.*?)$/,
-				'acaoDeExecucao'
-			),
-			new Padrao(
-				/^<span class="titBold">Ação Originária:<\/span> (.*?)$/,
-				'acaoOriginaria'
-			),
+			new Padrao(/^<span class="titBold">Ação de Execução:<\/span> (.*?)$/, 'acaoDeExecucao'),
+			new Padrao(/^<span class="titBold">Ação Originária:<\/span> (.*?)$/, 'acaoOriginaria'),
 			new Padrao(
 				/^<span class="titBold">Total Requisitado \(R\$\):<\/span> (.*)$/,
 				'valorTotalRequisitado'
 			),
-			new Padrao(
-				/^<span class="titBold">Requerido:<\/span> (.*)$/,
-				'requerido'
-			),
+			new Padrao(/^<span class="titBold">Requerido:<\/span> (.*)$/, 'requerido'),
 			new Padrao(/^<span class="titBold">Advogado:<\/span> ?(.*)$/, 'advogado'),
 			new Padrao(
 				/^<span class="titBold">Assunto Judicial:<\/span> (\d+)\s+- (.*)\s*$/,
@@ -133,9 +117,7 @@ export default class PaginaRequisicao extends Pagina {
 			.then(Utils.parseDecimalInt);
 		requisicao.numero = numero;
 
-		const tabela = await this.query<HTMLTableElement>(
-			'#divInfraAreaTabela > table:nth-child(2)'
-		);
+		const tabela = await this.query<HTMLTableElement>('#divInfraAreaTabela > table:nth-child(2)');
 		tabela.classList.add('gm-requisicao__tabela');
 		analisador.analisarInto(tabela, requisicao);
 
@@ -151,20 +133,13 @@ export default class PaginaRequisicao extends Pagina {
 				} else if ((tabelaAtual.textContent || '').trim() === 'Honorários') {
 					modo = 'Honorários';
 					ordinal = 0;
-				} else if (
-					(tabelaAtual.textContent || '').trim() ===
-					'Reembolsos/Deduções/Multas'
-				) {
+				} else if ((tabelaAtual.textContent || '').trim() === 'Reembolsos/Deduções/Multas') {
 					modo = 'Multa';
 					ordinal = 0;
 				} else if (modo === 'Beneficiários') {
-					requisicao.beneficiarios.push(
-						this.analisarTabelaBeneficiarios(tabelaAtual, ordinal++)
-					);
+					requisicao.beneficiarios.push(this.analisarTabelaBeneficiarios(tabelaAtual, ordinal++));
 				} else if (modo === 'Honorários') {
-					requisicao.honorarios.push(
-						this.analisarTabelaHonorarios(tabelaAtual, ordinal++)
-					);
+					requisicao.honorarios.push(this.analisarTabelaHonorarios(tabelaAtual, ordinal++));
 				} else if (modo === 'Multa') {
 					// Não analisar
 				} else {
@@ -181,16 +156,9 @@ export default class PaginaRequisicao extends Pagina {
 	analisarTabela(tabela: HTMLTableElement, prefixo: string) {
 		tabela.classList.add('gm-requisicao__tabela');
 		const analisador = new AnalisadorLinhasTabela(
-			new Padrao(
-				/^<span class="titBoldUnder">(.+) \(([\d./-]+)\)<\/span>$/,
-				'nome',
-				'cpfCnpj'
-			),
+			new Padrao(/^<span class="titBoldUnder">(.+) \(([\d./-]+)\)<\/span>$/, 'nome', 'cpfCnpj'),
 			new Padrao(/^<span class="titBold">Espécie:<\/span> (.*)$/, 'especie'),
-			new Padrao(
-				/^<span class="titBold">Tipo Honorário<\/span> (.+)$/,
-				'tipoHonorario'
-			),
+			new Padrao(/^<span class="titBold">Tipo Honorário<\/span> (.+)$/, 'tipoHonorario'),
 			new Padrao(
 				/^<span class="titBold">Data Base:<\/span> (\d{2}\/\d{4})&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Valor Requisitado \(Principal Corrigido \+ Juros\):<\/span> ([\d.,]+ \([\d.,]+ \+ [\d.,]+\))$/,
 				'dataBase',
@@ -201,10 +169,7 @@ export default class PaginaRequisicao extends Pagina {
 				'dataBase',
 				'valor'
 			),
-			new Padrao(
-				/^<span class="titBold">(VALOR (?:BLOQUEADO|LIBERADO))<\/span>$/,
-				'bloqueado'
-			),
+			new Padrao(/^<span class="titBold">(VALOR (?:BLOQUEADO|LIBERADO))<\/span>$/, 'bloqueado'),
 			new Padrao(
 				/^<span class="titBold">Juros de Mora Fix.no Tít. Executivo:<\/span> (.*)$/,
 				'tipoJuros'
@@ -213,23 +178,14 @@ export default class PaginaRequisicao extends Pagina {
 				/^<span class="titBold">Tipo de Despesa:<\/span> (?:.*) \((\d+)\)$/,
 				'codigoTipoDespesa'
 			),
-			new Padrao(
-				/^<span class="titBold">Doença Grave:<\/span> (Sim|Não)$/,
-				'doencaGrave'
-			),
+			new Padrao(/^<span class="titBold">Doença Grave:<\/span> (Sim|Não)$/, 'doencaGrave'),
 			new Padrao(
 				/^<span class="titBold">Doença Grave:<\/span> (Sim|Não)&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Data Nascimento:<\/span> (\d{2}\/\d{2}\/\d{4})$/,
 				'doencaGrave',
 				'dataNascimento'
 			),
-			new Padrao(
-				/^<span class="titBold">Renuncia Valor:<\/span> ?(Sim|Não|)$/,
-				'renunciaValor'
-			),
-			new Padrao(
-				/^<span class="titBold">Situação Servidor:<\/span> (.*)$/,
-				'situacaoServidor'
-			),
+			new Padrao(/^<span class="titBold">Renuncia Valor:<\/span> ?(Sim|Não|)$/, 'renunciaValor'),
+			new Padrao(/^<span class="titBold">Situação Servidor:<\/span> (.*)$/, 'situacaoServidor'),
 			new Padrao(
 				/^<span class="titBold">Destaque dos Honorários Contratuais:<\/span> (Sim|Não)$/,
 				'destaqueHonorariosContratuais'
@@ -238,10 +194,7 @@ export default class PaginaRequisicao extends Pagina {
 				/^<span class="titBold">Órgao de lotação do servidor:<\/span> (.*)$/,
 				'orgaoLotacaoServidor'
 			),
-			new Padrao(
-				/^<span class="titBold">IRPF- RRA a deduzir:<\/span> (Sim|Não)$/,
-				'irpf'
-			),
+			new Padrao(/^<span class="titBold">IRPF- RRA a deduzir:<\/span> (Sim|Não)$/, 'irpf'),
 			new Padrao(
 				/^<span class="titBold">Ano Exercicio Corrente:<\/span> (\d{4})&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Meses Exercicio Corrente:<\/span> (\d*)&nbsp;&nbsp;&nbsp;&nbsp;<span class="titBold">Valor Exercicio Corrente:<\/span> ([\d.,]+)$/,
 				'anoCorrente',
@@ -258,22 +211,13 @@ export default class PaginaRequisicao extends Pagina {
 				'mesesAnterior',
 				'valorAnterior'
 			),
-			new Padrao(
-				/^<span class="titBold">Beneficiário:<\/span> (.+)$/,
-				'beneficiario'
-			),
+			new Padrao(/^<span class="titBold">Beneficiário:<\/span> (.+)$/, 'beneficiario'),
 			new Padrao(
 				/^<span class="titBold">Requisição de Natureza Tributária \(ATUALIZADA PELA SELIC\):<\/span> (Sim|Não)$/,
 				'naturezaTributaria'
 			),
-			new Padrao(
-				/^<span class="titBold">Incide PSS:<\/span> ?(Sim|Não)$/,
-				'pss'
-			),
-			new Padrao(
-				/^<span class="titBold">Atualização Monetária:\s*<\/span>\s*(.+)$/,
-				'atualizacao'
-			)
+			new Padrao(/^<span class="titBold">Incide PSS:<\/span> ?(Sim|Não)$/, 'pss'),
+			new Padrao(/^<span class="titBold">Atualização Monetária:\s*<\/span>\s*(.+)$/, 'atualizacao')
 		);
 		analisador.definirConversores({
 			dataBase: ConversorMesAno,
@@ -304,36 +248,20 @@ export default class PaginaRequisicao extends Pagina {
 		return analisador.analisar(tabela);
 	}
 
-	analisarTabelaBeneficiarios(
-		tabela: HTMLTableElement,
-		ordinal: number
-	): DadosBeneficiario {
+	analisarTabelaBeneficiarios(tabela: HTMLTableElement, ordinal: number): DadosBeneficiario {
 		tabela.classList.add('gm-requisicao__beneficiarios__tabela');
-		return this.analisarTabela(
-			tabela,
-			`gm-requisicao__beneficiario--${ordinal}`
-		) as any;
+		return this.analisarTabela(tabela, `gm-requisicao__beneficiario--${ordinal}`) as any;
 	}
-	analisarTabelaHonorarios(
-		tabela: HTMLTableElement,
-		ordinal: number
-	): DadosHonorario {
+	analisarTabelaHonorarios(tabela: HTMLTableElement, ordinal: number): DadosHonorario {
 		tabela.classList.add('gm-requisicao__honorarios__tabela');
-		return this.analisarTabela(
-			tabela,
-			`gm-requisicao__honorario--${ordinal}`
-		) as any;
+		return this.analisarTabela(tabela, `gm-requisicao__honorario--${ordinal}`) as any;
 	}
 
 	enviarSolicitacao(janela: Window, data: Mensagem) {
-		janela.postMessage(JSON.stringify(data), this.doc.location.origin);
+		janela.postMessage(JSON.stringify(data), this.getLocation().origin);
 	}
 
-	enviarSolicitacaoAberturaDocumento(
-		janela: Window,
-		evento: number,
-		documento: number
-	) {
+	enviarSolicitacaoAberturaDocumento(janela: Window, evento: number, documento: number) {
 		const data: Mensagem = {
 			acao: Acoes.ABRIR_DOCUMENTO,
 			evento: evento,
@@ -413,11 +341,9 @@ export default class PaginaRequisicao extends Pagina {
 				.slice()
 				.sort((a, b) => a.ordem - b.ordem)
 				.forEach(documento => {
-					tabela += `<tr><td><a class="infraLinkDocumento" id="gm-documento-ev${
-						evento.evento
-					}-doc${documento.ordem}" data-evento="${
-						evento.evento
-					}" data-documento="${documento.ordem}" href="#">${
+					tabela += `<tr><td><a class="infraLinkDocumento" id="gm-documento-ev${evento.evento}-doc${
+						documento.ordem
+					}" data-evento="${evento.evento}" data-documento="${documento.ordem}" href="#">${
 						documento.nome
 					}</a></td></tr>`;
 				});
@@ -429,13 +355,8 @@ export default class PaginaRequisicao extends Pagina {
 			Array.from(eventos.values()).map(evento => {
 				Promise.all(
 					Array.from(evento.documentos.values()).map(async documento => {
-						const link = await this.query(
-							`#gm-documento-ev${evento.evento}-doc${documento.ordem}`
-						);
-						link.addEventListener(
-							'click',
-							this.onLinkDocumentoClicado.bind(this)
-						);
+						const link = await this.query(`#gm-documento-ev${evento.evento}-doc${documento.ordem}`);
+						link.addEventListener('click', this.onLinkDocumentoClicado.bind(this));
 					})
 				);
 			})
@@ -468,13 +389,9 @@ export default class PaginaRequisicao extends Pagina {
 				total = beneficiario.valor.total;
 			const honorarios = requisicao.honorarios
 				.map((honorario, ordinal) => Object.assign({}, honorario, { ordinal }))
+				.filter(honorario => honorario.tipoHonorario === 'Honorários Contratuais')
 				.filter(
-					honorario => honorario.tipoHonorario === 'Honorários Contratuais'
-				)
-				.filter(
-					honorario =>
-						honorario.beneficiario.toUpperCase() ===
-						beneficiario.nome.toUpperCase()
+					honorario => honorario.beneficiario.toUpperCase() === beneficiario.nome.toUpperCase()
 				);
 			honorarios.forEach(honorario => {
 				const prefixo = `.gm-requisicao__honorario--${honorario.ordinal}`;
@@ -485,20 +402,15 @@ export default class PaginaRequisicao extends Pagina {
 			});
 			let porcentagemAdvogado = 1 - beneficiario.valor.total / total;
 			let porcentagemArredondada = Utils.round(porcentagemAdvogado * 100, 0);
-			let calculoAdvogado = Utils.round(
-				(total * porcentagemArredondada) / 100,
-				2
-			);
+			let calculoAdvogado = Utils.round((total * porcentagemArredondada) / 100, 2);
 			let pagoAdvogado = Utils.round(total - beneficiario.valor.total, 2);
 			let diferenca = pagoAdvogado - calculoAdvogado;
 			if (Math.abs(diferenca) > 0.01) {
 				porcentagemArredondada = porcentagemAdvogado * 100;
 			}
-			const [principalString, jurosString, totalString] = [
-				principal,
-				juros,
-				total,
-			].map(valor => ConversorMoeda.converter(valor));
+			const [principalString, jurosString, totalString] = [principal, juros, total].map(valor =>
+				ConversorMoeda.converter(valor)
+			);
 			areaTabela.insertAdjacentHTML(
 				'beforeend',
 				`<p class="gm-resposta">${nome} &mdash; <span class="gm-resposta--indefinida">${principalString}</span> + <span class="gm-resposta--indefinida">${jurosString}</span> = <span class="gm-resposta--indefinida">${totalString}</span> em <span class="gm-resposta--indefinida">${ConversorMesAno.converter(
@@ -533,9 +445,7 @@ export default class PaginaRequisicao extends Pagina {
 					beneficiario.anoCorrente === undefined
 						? ''
 						: `(<span class="gm-resposta--indefinida">${
-								beneficiario.anoCorrente
-									? ConversorAno.converter(beneficiario.anoCorrente)
-									: ''
+								beneficiario.anoCorrente ? ConversorAno.converter(beneficiario.anoCorrente) : ''
 						  }</span>)`;
 				areaTabela.insertAdjacentHTML(
 					'beforeend',
@@ -552,9 +462,7 @@ export default class PaginaRequisicao extends Pagina {
 				this.validarElemento(`${prefixo}__irpf`);
 			}
 			if (porcentagemAdvogado > 0) {
-				const valoresHonorarios = honorarios.map(
-					honorario => honorario.valor.total
-				);
+				const valoresHonorarios = honorarios.map(honorario => honorario.valor.total);
 				const somaHonorarios = valoresHonorarios.reduce((a, b) => a + b, 0);
 				const porcentagens = valoresHonorarios
 					.map(valor => valor / somaHonorarios)
@@ -562,10 +470,7 @@ export default class PaginaRequisicao extends Pagina {
 					.map(pct => ConversorPorcentagem.converter(pct));
 				const advogados = honorarios
 					.map(honorario => honorario.nome)
-					.map(
-						(nome, i) =>
-							porcentagens.length < 2 ? nome : `${nome} (${porcentagens[i]})`
-					)
+					.map((nome, i) => (porcentagens.length < 2 ? nome : `${nome} (${porcentagens[i]})`))
 					.join(', ');
 				areaTabela.insertAdjacentHTML(
 					'beforeend',
@@ -587,9 +492,7 @@ export default class PaginaRequisicao extends Pagina {
 				areaTabela.insertAdjacentHTML(
 					'beforeend',
 					[
-						`<p class="gm-resposta gm-resposta--indefinida">${
-							honorario.nome
-						}</p>`,
+						`<p class="gm-resposta gm-resposta--indefinida">${honorario.nome}</p>`,
 						`<p class="gm-resposta gm-dados-adicionais"><span class="gm-resposta--indefinida">${
 							honorario.tipoHonorario
 						}</span> &mdash; <span class="gm-resposta--indefinida">${ConversorMoeda.converter(
@@ -609,7 +512,7 @@ export default class PaginaRequisicao extends Pagina {
 	onBotaoTelaIntimacaoClicado(evt: MouseEvent) {
 		evt.preventDefault();
 		evt.stopPropagation();
-		const opener = this.doc.defaultView.opener;
+		const opener = this.getWindow().opener;
 		this.obterRequisicao()
 			.then(requisicao => {
 				this.enviarSolicitacaoEditarRequisicao(opener, requisicao.numero);
@@ -622,13 +525,13 @@ export default class PaginaRequisicao extends Pagina {
 		const elemento = evt.target as HTMLAnchorElement;
 		const evento = Number(elemento.dataset.evento);
 		const documento = Number(elemento.dataset.documento);
-		const win = this.doc.defaultView;
+		const win = this.getWindow();
 		this.enviarSolicitacaoAberturaDocumento(win.opener, evento, documento);
 	}
 
 	onMensagemRecebida(evt: MessageEvent) {
 		console.info('Mensagem recebida', evt);
-		if (evt.origin === this.doc.location.origin) {
+		if (evt.origin === this.getLocation().origin) {
 			const data = JSON.parse(evt.data);
 			if (data.acao === Acoes.RESPOSTA_DADOS) {
 				(async () => {
@@ -650,13 +553,10 @@ export default class PaginaRequisicao extends Pagina {
 			'.gm-requisicao__dados__codigoAssunto',
 			dadosProcesso.assuntos.indexOf(requisicao.codigoAssunto) > -1
 		);
-		const dataAutuacao = ConversorData.converter(
-			new Date(dadosProcesso.autuacao)
-		);
+		const dataAutuacao = ConversorData.converter(new Date(dadosProcesso.autuacao));
 		this.validarElemento(
 			'.gm-requisicao__dados__dataAjuizamento',
-			dataAutuacao === ConversorData.converter(requisicao.dataAjuizamento) ||
-				undefined
+			dataAutuacao === ConversorData.converter(requisicao.dataAjuizamento) || undefined
 		);
 
 		this.validarElemento(
@@ -665,27 +565,16 @@ export default class PaginaRequisicao extends Pagina {
 		);
 
 		// Conferir data de trânsito em julgado
-		let dataTransito = ConversorData.converter(
-			new Date(dadosProcesso.transito.dataTransito || 0)
-		);
-		let dataEvento = ConversorData.converter(
-			new Date(dadosProcesso.transito.dataEvento || 0)
-		);
-		let dataDecurso = ConversorData.converter(
-			new Date(dadosProcesso.transito.dataDecurso || 0)
-		);
+		let dataTransito = ConversorData.converter(new Date(dadosProcesso.transito.dataTransito || 0));
+		let dataEvento = ConversorData.converter(new Date(dadosProcesso.transito.dataEvento || 0));
+		let dataDecurso = ConversorData.converter(new Date(dadosProcesso.transito.dataDecurso || 0));
 		let dataFechamento = ConversorData.converter(
 			new Date(dadosProcesso.transito.dataFechamento || 0)
 		);
-		let dataTransitoRequisicao = ConversorData.converter(
-			requisicao.dataTransitoSentenca
-		);
-		let isTrue =
-			dataTransito === dataTransitoRequisicao ||
-			dataDecurso === dataTransitoRequisicao;
+		let dataTransitoRequisicao = ConversorData.converter(requisicao.dataTransitoSentenca);
+		let isTrue = dataTransito === dataTransitoRequisicao || dataDecurso === dataTransitoRequisicao;
 		let isUndefined =
-			dataEvento === dataTransitoRequisicao ||
-			dataFechamento === dataTransitoRequisicao;
+			dataEvento === dataTransitoRequisicao || dataFechamento === dataTransitoRequisicao;
 		this.validarElemento(
 			'.gm-requisicao__dados__dataTransitoSentenca',
 			isTrue ? true : isUndefined ? undefined : false
@@ -705,10 +594,7 @@ export default class PaginaRequisicao extends Pagina {
 				autor => autor.cpfCnpj === beneficiario.cpfCnpj.replace(/[./-]/g, '')
 			);
 			// const autoresMesmoCPFeNome = autoresMesmoCPF.filter(autor => autor.nome.toUpperCase() === beneficiario.nome.toUpperCase());
-			this.validarElemento(
-				`.${prefixo}__cpfCnpj`,
-				autoresMesmoCPF.length === 1
-			);
+			this.validarElemento(`.${prefixo}__cpfCnpj`, autoresMesmoCPF.length === 1);
 			// this.validarElemento(`.${prefixo}__nome`, autoresMesmoCPFeNome.length === 1);
 		});
 
@@ -727,18 +613,12 @@ export default class PaginaRequisicao extends Pagina {
 					const advogadosAutorMesmoNome = autor.advogados.filter(
 						advogado => advogado.toUpperCase() === honorario.nome.toUpperCase()
 					);
-					this.validarElemento(
-						`.${prefixo}__nome`,
-						advogadosAutorMesmoNome.length === 1
-					);
+					this.validarElemento(`.${prefixo}__nome`, advogadosAutorMesmoNome.length === 1);
 				} else {
 					this.validarElemento(`.${prefixo}__nome`, false);
 				}
 			} else if (honorario.tipoHonorario === 'Honorários de Sucumbência') {
-				this.validarElemento(
-					`.${prefixo}__nome`,
-					advogados.has(honorario.nome.toUpperCase())
-				);
+				this.validarElemento(`.${prefixo}__nome`, advogados.has(honorario.nome.toUpperCase()));
 			}
 		});
 	}
@@ -747,10 +627,7 @@ export default class PaginaRequisicao extends Pagina {
 		const requisicao = await this.obterRequisicao();
 
 		// Status da requisição deve ser "Finalizada"
-		this.validarElemento(
-			'.gm-requisicao__dados__status',
-			requisicao.status === 'Finalizada'
-		);
+		this.validarElemento('.gm-requisicao__dados__status', requisicao.status === 'Finalizada');
 
 		this.validarElemento('.gm-requisicao__dados__originarioJEF', true);
 		this.validarElemento('.gm-requisicao__dados__extraorcamentaria', true);
@@ -795,15 +672,11 @@ export default class PaginaRequisicao extends Pagina {
 						ordinaisContratuais: requisicao.honorarios
 							.map((honorario, ordinal) => ({ honorario, ordinal }))
 							.filter(
-								({ honorario: { tipoHonorario } }) =>
-									tipoHonorario === 'Honorários Contratuais'
+								({ honorario: { tipoHonorario } }) => tipoHonorario === 'Honorários Contratuais'
 							)
 							.filter(
-								({
-									honorario: { beneficiario: nomeBeneficiarioContratuais },
-								}) =>
-									nomeBeneficiarioContratuais.toUpperCase() ===
-									beneficiario.nome.toUpperCase()
+								({ honorario: { beneficiario: nomeBeneficiarioContratuais } }) =>
+									nomeBeneficiarioContratuais.toUpperCase() === beneficiario.nome.toUpperCase()
 							)
 							.map(({ ordinal }) => ordinal),
 					},
@@ -812,10 +685,7 @@ export default class PaginaRequisicao extends Pagina {
 			),
 			requisicao.honorarios
 				.map((honorario, ordinal) => ({ honorario, ordinal }))
-				.filter(
-					({ honorario: { tipoHonorario } }) =>
-						tipoHonorario === 'Honorários Contratuais'
-				)
+				.filter(({ honorario: { tipoHonorario } }) => tipoHonorario === 'Honorários Contratuais')
 				.map(
 					({ honorario, ordinal }): Pagamento => ({
 						tipo: 'honorario',
@@ -836,10 +706,7 @@ export default class PaginaRequisicao extends Pagina {
 				),
 			requisicao.honorarios
 				.map((honorario, ordinal) => ({ honorario, ordinal }))
-				.filter(
-					({ honorario: { tipoHonorario } }) =>
-						tipoHonorario !== 'Honorários Contratuais'
-				)
+				.filter(({ honorario: { tipoHonorario } }) => tipoHonorario !== 'Honorários Contratuais')
 				.map(
 					({ honorario, ordinal }): Pagamento => ({
 						tipo: 'honorario',
@@ -856,10 +723,7 @@ export default class PaginaRequisicao extends Pagina {
 
 		const LIMITE = 60 * SALARIO_MINIMO;
 
-		const total = pagamentos.reduce(
-			(soma, { pagamento }) => soma + pagamento.valor.total,
-			0
-		);
+		const total = pagamentos.reduce((soma, { pagamento }) => soma + pagamento.valor.total, 0);
 		this.validarElemento(
 			'.gm-requisicao__dados__valorTotalRequisitado',
 			requisicao.valorTotalRequisitado === Utils.round(total, 2)
@@ -880,23 +744,16 @@ export default class PaginaRequisicao extends Pagina {
 			const bloqueioEstaCorreto =
 				!pagamento.pagamento.bloqueado &&
 				pagamento.tipo === 'honorario' &&
-				tiposHonorariosPresumeLiberado.some(
-					tipo => tipo === pagamento.pagamento.tipoHonorario
-				);
-			this.validarElemento(
-				`.${pagamento.prefixo}__bloqueado`,
-				bloqueioEstaCorreto || undefined
-			);
+				tiposHonorariosPresumeLiberado.some(tipo => tipo === pagamento.pagamento.tipoHonorario);
+			this.validarElemento(`.${pagamento.prefixo}__bloqueado`, bloqueioEstaCorreto || undefined);
 			if ('tipoJuros' in pagamento.pagamento) {
 				this.validarElemento(
 					`.${pagamento.prefixo}__tipoJuros`,
 					(pagamento.tipo === 'honorario' &&
-						(pagamento.pagamento.tipoHonorario ===
-							'Devolução à Seção Judiciária' ||
+						(pagamento.pagamento.tipoHonorario === 'Devolução à Seção Judiciária' ||
 							pagamento.pagamento.tipoHonorario === 'Honorários Periciais') &&
 						pagamento.pagamento.tipoJuros === 'Não incidem') ||
-						(ehPrevidenciario &&
-							pagamento.pagamento.tipoJuros === 'Poupança') ||
+						(ehPrevidenciario && pagamento.pagamento.tipoJuros === 'Poupança') ||
 						undefined
 				);
 			}
@@ -913,12 +770,8 @@ export default class PaginaRequisicao extends Pagina {
 			} else {
 				const atualizacaoCorreta =
 					naturezaTributaria !==
-					(pagamento.pagamento.atualizacao ===
-						'IPCA-E mais Juros de Mora Fix.no Tít. Executivo');
-				this.validarElemento(
-					`.${pagamento.prefixo}__atualizacao`,
-					atualizacaoCorreta
-				);
+					(pagamento.pagamento.atualizacao === 'IPCA-E mais Juros de Mora Fix.no Tít. Executivo');
+				this.validarElemento(`.${pagamento.prefixo}__atualizacao`, atualizacaoCorreta);
 			}
 
 			if ('situacaoServidor' in pagamento.pagamento) {
@@ -936,8 +789,7 @@ export default class PaginaRequisicao extends Pagina {
 					codigoNaturezaCorreto =
 						ehServidor ||
 						(pagamento.tipo === 'honorario' &&
-							pagamento.pagamento.tipoHonorario ===
-								'Honorários de Sucumbência') ||
+							pagamento.pagamento.tipoHonorario === 'Honorários de Sucumbência') ||
 						undefined;
 					break;
 
@@ -954,15 +806,11 @@ export default class PaginaRequisicao extends Pagina {
 					codigoNaturezaCorreto =
 						ehTributario ||
 						(pagamento.tipo === 'honorario' &&
-							pagamento.pagamento.tipoHonorario ===
-								'Devolução à Seção Judiciária') ||
+							pagamento.pagamento.tipoHonorario === 'Devolução à Seção Judiciária') ||
 						undefined;
 					break;
 			}
-			this.validarElemento(
-				`.${pagamento.prefixo}__codigoTipoDespesa`,
-				codigoNaturezaCorreto
-			);
+			this.validarElemento(`.${pagamento.prefixo}__codigoTipoDespesa`, codigoNaturezaCorreto);
 
 			if (!/^RPV/.test(pagamento.pagamento.especie)) {
 				this.validarElemento(`.${pagamento.prefixo}__doencaGrave`, undefined);
@@ -977,16 +825,9 @@ export default class PaginaRequisicao extends Pagina {
 					if (pagamento.pagamento.valorCorrente) {
 						irpf += pagamento.pagamento.valorCorrente;
 					}
-					const valorIRPFConfere =
-						Utils.round(irpf, 2) === pagamento.pagamento.valor.total;
-					this.validarElemento(
-						`.${pagamento.prefixo}__valorCorrente`,
-						valorIRPFConfere
-					);
-					this.validarElemento(
-						`.${pagamento.prefixo}__valorAnterior`,
-						valorIRPFConfere
-					);
+					const valorIRPFConfere = Utils.round(irpf, 2) === pagamento.pagamento.valor.total;
+					this.validarElemento(`.${pagamento.prefixo}__valorCorrente`, valorIRPFConfere);
+					this.validarElemento(`.${pagamento.prefixo}__valorAnterior`, valorIRPFConfere);
 				}
 
 				const valorIncluindoContratuais = [pagamento.pagamento.valor.total]
@@ -996,23 +837,16 @@ export default class PaginaRequisicao extends Pagina {
 							.map(honorario => honorario.valor.total)
 					)
 					.reduce((soma, valor) => soma + valor, 0);
-				const diferenca =
-					Math.round(valorIncluindoContratuais * 100) - LIMITE * 100;
+				const diferenca = Math.round(valorIncluindoContratuais * 100) - LIMITE * 100;
 
 				if (pagamento.pagamento.especie.match(/^RPV/) !== null) {
 					this.validarElemento(
 						`.${pagamento.prefixo}__renunciaValor`,
 						pagamento.pagamento.renunciaValor === (diferenca === 0)
 					);
-					this.validarElemento(
-						`.${pagamento.prefixo}__especie`,
-						diferenca <= 0
-					);
+					this.validarElemento(`.${pagamento.prefixo}__especie`, diferenca <= 0);
 				} else {
-					this.validarElemento(
-						`.${pagamento.prefixo}__especie`,
-						diferenca > 0 || undefined
-					);
+					this.validarElemento(`.${pagamento.prefixo}__especie`, diferenca > 0 || undefined);
 				}
 
 				this.validarElemento(
@@ -1033,23 +867,13 @@ export default class PaginaRequisicao extends Pagina {
 							// Conferir se data-base dos honorários contratuais é a mesma do valor principal
 							this.validarElemento(
 								`.${pagamento.prefixo}__dataBase`,
-								beneficiario.dataBase.getTime() ===
-									pagamento.pagamento.dataBase.getTime()
+								beneficiario.dataBase.getTime() === pagamento.pagamento.dataBase.getTime()
 							);
 							// Conferir se razão entre principal e juros dos honorários contratuais é a mesma do valor do beneficiário
-							const {
-								principal: princBen,
-								total: totalBen,
-							} = beneficiario.valor;
-							const {
-								principal: princAdv,
-								total: totalAdv,
-							} = pagamento.pagamento.valor;
+							const { principal: princBen, total: totalBen } = beneficiario.valor;
+							const { principal: princAdv, total: totalAdv } = pagamento.pagamento.valor;
 							const razao = (princBen * totalAdv) / (totalBen * princAdv);
-							this.validarElemento(
-								`.${pagamento.prefixo}__valor`,
-								Math.abs(razao - 1) < 0.005
-							);
+							this.validarElemento(`.${pagamento.prefixo}__valor`, Math.abs(razao - 1) < 0.005);
 						});
 
 					const valorIncluindoBeneficiario = [pagamento.pagamento.valor.total]
@@ -1059,41 +883,27 @@ export default class PaginaRequisicao extends Pagina {
 								.map(beneficiario => beneficiario.valor.total)
 						)
 						.reduce((soma, valor) => soma + valor, 0);
-					const diferenca =
-						Math.round(valorIncluindoBeneficiario * 100) - LIMITE * 100;
+					const diferenca = Math.round(valorIncluindoBeneficiario * 100) - LIMITE * 100;
 
 					if (pagamento.pagamento.especie.match(/^RPV/) !== null) {
 						this.validarElemento(
 							`.${pagamento.prefixo}__renunciaValor`,
 							pagamento.pagamento.renunciaValor === (diferenca === 0)
 						);
-						this.validarElemento(
-							`.${pagamento.prefixo}__especie`,
-							diferenca <= 0
-						);
+						this.validarElemento(`.${pagamento.prefixo}__especie`, diferenca <= 0);
 					} else {
-						this.validarElemento(
-							`.${pagamento.prefixo}__especie`,
-							diferenca > 0 || undefined
-						);
+						this.validarElemento(`.${pagamento.prefixo}__especie`, diferenca > 0 || undefined);
 					}
 				} else {
-					const ultrapassaLimite =
-						pagamento.pagamento.valor.total / LIMITE > 0.99;
+					const ultrapassaLimite = pagamento.pagamento.valor.total / LIMITE > 0.99;
 					if (pagamento.pagamento.especie.match(/^RPV/) !== null) {
 						this.validarElemento(
 							`.${pagamento.prefixo}__renunciaValor`,
 							pagamento.pagamento.renunciaValor === ultrapassaLimite
 						);
-						this.validarElemento(
-							`.${pagamento.prefixo}__especie`,
-							!ultrapassaLimite
-						);
+						this.validarElemento(`.${pagamento.prefixo}__especie`, !ultrapassaLimite);
 					} else {
-						this.validarElemento(
-							`.${pagamento.prefixo}__especie`,
-							ultrapassaLimite || undefined
-						);
+						this.validarElemento(`.${pagamento.prefixo}__especie`, ultrapassaLimite || undefined);
 					}
 				}
 			}

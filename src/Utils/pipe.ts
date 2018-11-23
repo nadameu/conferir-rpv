@@ -1,10 +1,6 @@
 export default function pipe<A, B>(ab: Fn<A, B>): Fn<A, B>;
 export default function pipe<A, B, C>(ab: Fn<A, B>, bc: Fn<B, C>): Fn<A, C>;
-export default function pipe<A, B, C, D>(
-	ab: Fn<A, B>,
-	bc: Fn<B, C>,
-	cd: Fn<C, D>
-): Fn<A, D>;
+export default function pipe<A, B, C, D>(ab: Fn<A, B>, bc: Fn<B, C>, cd: Fn<C, D>): Fn<A, D>;
 export default function pipe<A, B, C, D, E>(
 	ab: Fn<A, B>,
 	bc: Fn<B, C>,

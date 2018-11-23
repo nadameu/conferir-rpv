@@ -2,10 +2,8 @@ type Fn<T, U> = (_: T) => U;
 type Nullable<T> = T | null | undefined;
 type NullableFn<T, U> = Fn<T, Nullable<U>>;
 
-export default function safePipe<A, B>(
-	obj: Nullable<A>,
-	fab: Fn<A, B>
-): Nullable<B>;
+export default function safePipe<A>(obj: Nullable<A>): Nullable<A>;
+export default function safePipe<A, B>(obj: Nullable<A>, fab: Fn<A, B>): Nullable<B>;
 export default function safePipe<A, B, C>(
 	obj: Nullable<A>,
 	fab: NullableFn<A, B>,

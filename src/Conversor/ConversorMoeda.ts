@@ -5,9 +5,7 @@ const ConversorMoeda: AnalisadorConversor<number> = {
 	converter(valor) {
 		const valorArredondado = Math.round(valor * 100) / 100;
 		let [reaisComSinal, centavos] = valorArredondado.toFixed(2).split('.');
-		let [, sinal, reais] = reaisComSinal.match(
-			/^(-?)(\d+)$/
-		) as RegExpMatchArray;
+		let [, sinal, reais] = reaisComSinal.match(/^(-?)(\d+)$/) as RegExpMatchArray;
 		let final = '';
 		while (reais.length > 3) {
 			final = `.${reais.substr(-3)}` + final;

@@ -9,10 +9,8 @@ export default {
 		/^https:\/\/eproc\.(trf4|jf(pr|rs|sc))\.jus\.br\/eproc(2trf4|V2)\/controlador\.php\?acao=oficio_requisitorio_listar\&/,
 	],
 	website: 'https://www.nadameu.com.br/',
-	downloadURL:
-		'https://github.com/nadameu/greasemonkey/raw/master/precatorios-rpv.user.js',
-	updateURL:
-		'https://github.com/nadameu/greasemonkey/raw/master/precatorios-rpv.meta.js',
+	downloadURL: 'https://github.com/nadameu/greasemonkey/raw/master/precatorios-rpv.user.js',
+	updateURL: 'https://github.com/nadameu/greasemonkey/raw/master/precatorios-rpv.meta.js',
 	supportURL: 'https://github.com/nadameu/precatorios-rpv/issues',
-	grant: 'GM_xmlhttpRequest',
+	grant: ['GM_addStyle', 'GM_xmlhttpRequest'],
 };

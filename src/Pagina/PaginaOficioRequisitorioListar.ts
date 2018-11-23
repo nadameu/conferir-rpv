@@ -1,7 +1,9 @@
-import './PaginaOficioRequisitorioListar.css';
 import BotaoAcao from '../BotaoAcao';
-import Pagina from './Pagina';
 import { ConversorData, ConversorPorcentagem } from '../Conversor';
+import padStart from '../Utils/padStart';
+import Pagina from './Pagina';
+
+const estilos = require('./PaginaOficioRequisitorioListar.css');
 
 type DadosPaginacao = {
 	caption: HTMLTableCaptionElement;
@@ -25,9 +27,8 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 	private _isLoadingDates = false;
 
 	async adicionarAlteracoes() {
-		const barra = await this.query<HTMLDivElement>(
-			'#divInfraBarraComandosSuperior'
-		);
+		GM_addStyle(estilos);
+		const barra = await this.query<HTMLDivElement>('#divInfraBarraComandosSuperior');
 		const fragment = this.doc.createDocumentFragment();
 		await this.adicionarBotaoCarregarPaginas().then(
 			botaoCarregarPaginas => {
@@ -60,45 +61,31 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 		return BotaoAcao.criar('Excluir dados armazenados localmente', evt => {
 			evt.preventDefault();
 			excluirDatasSalvas();
-			this.doc.defaultView.alert('Dados locais excluídos.');
+			this.getWindow().alert('Dados locais excluídos.');
 		});
 	}
 
 	adicionarBotaoOrdenar() {
-		return BotaoAcao.criar(
-			'Ordenar por data de trânsito',
-			this.onBotaoOrdenarClicked.bind(this)
-		);
+		return BotaoAcao.criar('Ordenar por data de trânsito', this.onBotaoOrdenarClicked.bind(this));
 	}
 
 	async obterDadosPaginacao(): Promise<DadosPaginacao> {
-		const paginaAtual = await this.query<HTMLInputElement>(
-			'#hdnInfraPaginaAtual'
-		);
+		const paginaAtual = await this.query<HTMLInputElement>('#hdnInfraPaginaAtual');
 		if (Number(paginaAtual.value) !== 0) {
 			throw new NaoCarregarOutrasPaginasError();
 		}
 
 		// Garante que há mais de uma página
-		await this.query<HTMLAnchorElement>('#lnkInfraProximaPaginaSuperior').catch(
-			() => Promise.reject(new NaoCarregarOutrasPaginasError())
+		await this.query<HTMLAnchorElement>('#lnkInfraProximaPaginaSuperior').catch(() =>
+			Promise.reject(new NaoCarregarOutrasPaginasError())
 		);
 
-		const paginacao = this.doc.querySelector<HTMLSelectElement>(
-			'#selInfraPaginacaoSuperior'
-		);
+		const paginacao = this.doc.querySelector<HTMLSelectElement>('#selInfraPaginacaoSuperior');
 		const paginas = paginacao === null ? 2 : paginacao.options.length;
 
-		const tabela = await this.query<HTMLTableElement>(
-			'#divInfraAreaTabela > table'
-		);
-		const caption = await this.query<HTMLTableCaptionElement>(
-			'caption',
-			tabela
-		);
-		const match = (caption.textContent || '').match(
-			/Lista de  \((\d+) registros - \d+ a \d+\):/
-		);
+		const tabela = await this.query<HTMLTableElement>('#divInfraAreaTabela > table');
+		const caption = await this.query<HTMLTableCaptionElement>('caption', tabela);
+		const match = (caption.textContent || '').match(/Lista de  \((\d+) registros - \d+ a \d+\):/);
 		if (!match) {
 			throw new Error('Descrição do número de elementos desconhecida.');
 		}
@@ -108,12 +95,8 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 			caption,
 			registros: Number(match[1]),
 			form: await queryParent<HTMLFormElement>(tabela, 'form'),
-			paginacaoSuperior: await this.query<HTMLDivElement>(
-				'#divInfraAreaPaginacaoSuperior'
-			),
-			paginacaoInferior: await this.query<HTMLDivElement>(
-				'#divInfraAreaPaginacaoInferior'
-			),
+			paginacaoSuperior: await this.query<HTMLDivElement>('#divInfraAreaPaginacaoSuperior'),
+			paginacaoInferior: await this.query<HTMLDivElement>('#divInfraAreaPaginacaoInferior'),
 			paginaAtual,
 			paginas,
 		};
@@ -121,13 +104,12 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 
 	async obterDadosOficios(): Promise<DadosOficios> {
 		const links = await Promise.all(
-			this.queryAll<HTMLImageElement>(
-				'img[src$="infra_css/imagens/lupa.gif"]'
-			).map(lupa => queryParent<HTMLAnchorElement>(lupa, 'a[href]'))
+			this.queryAll<HTMLImageElement>('img[src$="infra_css/imagens/lupa.gif"]').map(lupa =>
+				queryParent<HTMLAnchorElement>(lupa, 'a[href]')
+			)
 		);
-		if (links.length === 0)
-			throw new Error('Não foram encontrados ofícios requisitórios.');
-		const baseUrl = this.doc.location.href;
+		if (links.length === 0) throw new Error('Não foram encontrados ofícios requisitórios.');
+		const baseUrl = this.getLocation().href;
 		const urls = links
 			.map(link => link.getAttribute('onclick') || '')
 			.map(codigo => codigo.match(/window\.open\('([^']+)'/))
@@ -179,7 +161,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 				const final = Math.min(registros, inicial + 49);
 				botao.textContent = `Carregando ofícios ${inicial} a ${final}...`;
 				data.set('hdnInfraPaginaAtual', pagina.toString());
-				return buscarDados('POST', this.doc.location.href, data).then(doc =>
+				return buscarDados('POST', this.getLocation().href, data).then(doc =>
 					Array.from(
 						doc.querySelectorAll<HTMLTableRowElement>(
 							'#divInfraAreaTabela > table > tbody > tr:nth-child(n + 2)'
@@ -196,9 +178,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 						frag.appendChild(linha);
 						const ordinal = String(50 + i);
 						linha.id = `tr_${ordinal}`;
-						const chk = linha.cells[0].querySelector<HTMLInputElement>(
-							'input[type=checkbox]'
-						);
+						const chk = linha.cells[0].querySelector<HTMLInputElement>('input[type=checkbox]');
 						if (chk) {
 							chk.id = `chklinha_${ordinal}`;
 							chk.setAttribute('onclick', `marcaDesmarcaLinha(${ordinal})`);
@@ -271,10 +251,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 						infos.reduce((frag, { data, linha }, i) => {
 							frag.appendChild(linha);
 							const primeiraCelula = linha.cells[0];
-							primeiraCelula.insertAdjacentHTML(
-								'afterbegin',
-								String(i + 1).padStart(3, '0')
-							);
+							primeiraCelula.insertAdjacentHTML('afterbegin', padStart(String(i + 1), 3, '0'));
 							const celulaTransito = linha.insertCell(linha.cells.length);
 							celulaTransito.textContent = ConversorData.converter(data);
 							return frag;
@@ -292,11 +269,7 @@ export default class PaginaOficioRequisitorioListar extends Pagina {
 	}
 }
 
-function limitConcurrency<T, U>(
-	max: number,
-	mapper: (_: T) => Promise<U>,
-	originalItems: T[]
-) {
+function limitConcurrency<T, U>(max: number, mapper: (_: T) => Promise<U>, originalItems: T[]) {
 	const items = originalItems.slice();
 	return new Promise<U[]>((res, rej) => {
 		const promises: Promise<void | U>[] = [];
@@ -311,7 +284,7 @@ function limitConcurrency<T, U>(
 					mapper(item).then(
 						x => {
 							running--;
-							setImmediate(doLoop);
+							setTimeout(doLoop, 0);
 							return x;
 						},
 						e => {
@@ -323,7 +296,7 @@ function limitConcurrency<T, U>(
 					)
 				);
 				running++;
-				setImmediate(doLoop);
+				setTimeout(doLoop, 0);
 			} else {
 				res(Promise.all(<Promise<U>[]>promises));
 			}
@@ -349,25 +322,23 @@ function buscarDados<T extends XMLHttpRequestResponseType = 'document'>(
 	data: any = null,
 	responseType: T = <T>'document'
 ) {
-	return new Promise<
-		T extends 'document' ? Document : T extends 'text' ? string : any
-	>((res, rej) => {
-		const xhr = new XMLHttpRequest();
-		xhr.open(method, url);
-		xhr.responseType = responseType;
-		xhr.addEventListener('load', () => {
-			res(responseType === 'text' ? xhr.responseText : xhr.response);
-		});
-		xhr.addEventListener('error', rej);
-		xhr.send(data);
-	});
+	return new Promise<T extends 'document' ? Document : T extends 'text' ? string : any>(
+		(res, rej) => {
+			const xhr = new XMLHttpRequest();
+			xhr.open(method, url);
+			xhr.responseType = responseType;
+			xhr.addEventListener('load', () => {
+				res(responseType === 'text' ? xhr.responseText : xhr.response);
+			});
+			xhr.addEventListener('error', rej);
+			xhr.send(data);
+		}
+	);
 }
 
 let datas: Map<number, Date> = new Map();
 function carregarDatasSalvas() {
-	const dados: [number, number][] = JSON.parse(
-		localStorage.getItem('datas-transito') || '[]'
-	);
+	const dados: [number, number][] = JSON.parse(localStorage.getItem('datas-transito') || '[]');
 	datas = new Map(
 		dados.reduce<{ last: [number, number]; arr: [number, Date][] }>(
 			({ last: [last, lastDt], arr }, [numero, data]) => {
@@ -416,9 +387,7 @@ function buscarDataTransito(url: string) {
 					/<td><span class="titBold">Data do trânsito em julgado da sentença ou acórdão\(JEF\):<\/span> (\d{2}\/\d{2}\/\d{4})<\/td>/
 				) ||
 				(console.log('Data do trânsito não encontrada:', html),
-				Promise.reject<RegExpMatchArray>(
-					new Error('Data do trânsito não encontrada')
-				))
+				Promise.reject<RegExpMatchArray>(new Error('Data do trânsito não encontrada')))
 		)
 		.then(match => match[1])
 		.then(ConversorData.analisar)

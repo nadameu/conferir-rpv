@@ -8,9 +8,7 @@ test('analisar', () => {
 		jsc.suchthat(jsc.number, x => x >= 0),
 		(principal, juros) => {
 			const total = principal + juros;
-			const analisado = ConversorValores.analisar(
-				valoresParaTexto(principal, juros, total)
-			);
+			const analisado = ConversorValores.analisar(valoresParaTexto(principal, juros, total));
 			return (
 				analisado.principal === Math.round(principal * 100) / 100 &&
 				analisado.juros === Math.round(juros * 100) / 100 &&

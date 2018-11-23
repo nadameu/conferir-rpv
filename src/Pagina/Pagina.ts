@@ -1,41 +1,46 @@
 import * as Option from 'fp-ts/lib/Option';
 
 export default abstract class Pagina {
-	protected doc: Document;
-	constructor(doc: Document) {
+	protected doc: HTMLDocument;
+	constructor(doc: HTMLDocument) {
 		this.doc = doc;
 	}
 
 	abstract adicionarAlteracoes(): Promise<any>;
 
-	queryAll<T extends Element>(
-		selector: string,
-		context: NodeSelector = this.doc
-	) {
+	getLocation(): Location {
+		const location = this.doc.location;
+		if (!location) {
+			throw new Error('Objeto "location" não encontrado.');
+		}
+		return location;
+	}
+
+	getWindow(): Window {
+		const win = this.doc.defaultView;
+		if (!win) {
+			throw new Error('Janela não encontrada.');
+		}
+		return win;
+	}
+
+	queryAll<T extends Element>(selector: string, context: NodeSelector = this.doc) {
 		return Array.from(context.querySelectorAll<T>(selector));
 	}
 
 	query<T extends Element>(selector: string, context: NodeSelector = this.doc) {
 		const elemento = context.querySelector<T>(selector);
 		if (elemento === null) {
-			return Promise.reject(
-				new Error(`Elemento não encontrado: "${selector}".`)
-			);
+			return Promise.reject(new Error(`Elemento não encontrado: "${selector}".`));
 		}
 		return Promise.resolve(elemento);
 	}
 
-	queryOption<T extends Element>(
-		selector: string,
-		context: NodeSelector = this.doc
-	) {
+	queryOption<T extends Element>(selector: string, context: NodeSelector = this.doc) {
 		return Option.fromNullable(context.querySelector<T>(selector));
 	}
 
-	queryTexto<T extends Element>(
-		selector: string,
-		context: NodeSelector = this.doc
-	) {
+	queryTexto<T extends Element>(selector: string, context: NodeSelector = this.doc) {
 		return this.query<T>(selector, context).then(elemento => {
 			const texto = elemento.textContent;
 			return texto

@@ -2,9 +2,7 @@ const ConversorPorcentagem: AnalisadorConversor<number> = {
 	analisar(texto) {
 		const match = texto.match(/^(-?\d+(,\d+)?)%$/);
 		if (!match || match.length !== 3) {
-			throw new TypeError(
-				`Valor não corresponde a uma porcentagem: "${texto}".`
-			);
+			throw new TypeError(`Valor não corresponde a uma porcentagem: "${texto}".`);
 		}
 		return Math.round(parseFloat(match[1].replace(',', '.')) * 1e6) / 1e8;
 	},

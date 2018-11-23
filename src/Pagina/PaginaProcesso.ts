@@ -2,7 +2,6 @@ import { liftA3, liftA2 } from 'fp-ts/lib/Apply';
 import * as array from 'fp-ts/lib/Array';
 import * as Option from 'fp-ts/lib/Option';
 
-import './PaginaProcesso.css';
 import Acoes from '../Acoes';
 import BotaoAcao from '../BotaoAcao';
 import { ConversorData, ConversorDataHora } from '../Conversor';
@@ -12,14 +11,14 @@ import { PaginaListar } from './index';
 import * as Utils from '../Utils';
 import * as XHR from '../XHR';
 
+const estilos = require('./PaginaProcesso.css');
+
 export default class PaginaProcesso extends Pagina {
 	private janelasDependentes: Map<string, Window> = new Map();
 	urlEditarRequisicoes: Map<number, string> = new Map();
 
 	obterAssuntos() {
-		const maybeTabela = this.queryOption<HTMLTableElement>(
-			'table[summary="Assuntos"]'
-		);
+		const maybeTabela = this.queryOption<HTMLTableElement>('table[summary="Assuntos"]');
 		const linhas = array
 			.catOptions([maybeTabela])
 			.map(tabela => Array.from(tabela.rows).filter((_, i) => i > 0))
@@ -33,31 +32,20 @@ export default class PaginaProcesso extends Pagina {
 		const maybeNome = optionText(link);
 		const maybeCelula = optionParent<HTMLTableCellElement>('td', link);
 		const maybeCpfCnpj = maybeCelula
-			.chain(celula =>
-				this.queryOption<HTMLSpanElement>(
-					'span[id^="spnCpfParteAutor"]',
-					celula
-				)
-			)
+			.chain(celula => this.queryOption<HTMLSpanElement>('span[id^="spnCpfParteAutor"]', celula))
 			.mapNullable(c => c.textContent)
 			.map(t => t.replace(/\D/g, ''));
 
 		return liftA3(Option.option)(
 			(nome: string) => (celula: HTMLTableCellElement) => (cpfCnpj: string) => {
-				const oabAdvogados = this.queryAll<HTMLAnchorElement>(
-					'a',
-					celula
-				).filter(oab =>
-					Option.fromNullable(oab.getAttribute('onmouseover')).fold(
-						false,
-						texto => /ADVOGADO/.test(texto)
+				const oabAdvogados = this.queryAll<HTMLAnchorElement>('a', celula).filter(oab =>
+					Option.fromNullable(oab.getAttribute('onmouseover')).fold(false, texto =>
+						/ADVOGADO/.test(texto)
 					)
 				);
 				const advogados = array.catOptions(
 					oabAdvogados.map(oab =>
-						Option.fromNullable(oab.previousElementSibling).mapNullable(
-							el => el.textContent
-						)
+						Option.fromNullable(oab.previousElementSibling).mapNullable(el => el.textContent)
 					)
 				);
 				const dadosAutor: DadosAutor = {
@@ -94,9 +82,7 @@ export default class PaginaProcesso extends Pagina {
 	}
 
 	obterDespachosCitacao() {
-		return this.destacarDocumentosPorEvento(
-			/Despacho\/Decisão - Determina Citação/
-		);
+		return this.destacarDocumentosPorEvento(/Despacho\/Decisão - Determina Citação/);
 	}
 
 	async obterHonorarios() {
@@ -208,31 +194,21 @@ export default class PaginaProcesso extends Pagina {
 			);
 
 			const eventosIntimacao = liftA2(Option.option)(
-				(numeroEventoDecisaoTerminativa: number) => (
-					reReferenteDecisao: RegExp
-				) =>
+				(numeroEventoDecisaoTerminativa: number) => (reReferenteDecisao: RegExp) =>
 					linhasEventos
 						.filter(linha =>
 							optionTextoCelula(1)(linha)
 								.map(t => Utils.parseDecimalInt(t))
 								.exists(n => n <= numeroEventoDecisaoTerminativa)
 						)
-						.filter(linha =>
-							optionTextoCelula(3)(linha).exists(
-								t => !reReferenteDecisao.test(t)
-							)
-						)
+						.filter(linha => optionTextoCelula(3)(linha).exists(t => !reReferenteDecisao.test(t)))
 						.filter(linha =>
 							Option.fromNullable(linha.cells[3])
-								.mapNullable(c =>
-									c.querySelector<HTMLSpanElement>('.infraEventoPrazoParte')
-								)
+								.mapNullable(c => c.querySelector<HTMLSpanElement>('.infraEventoPrazoParte'))
 								.mapNullable(el => el.dataset.parte)
 								.exists(parte => /^(AUTOR|REU|MPF)$/.test(parte))
 						)
-			)(maybeNumeroEventoDecisaoTerminativa)(maybeReReferenteDecisao).getOrElse(
-				[]
-			);
+			)(maybeNumeroEventoDecisaoTerminativa)(maybeReReferenteDecisao).getOrElse([]);
 
 			if (eventosIntimacao.length > 0) {
 				type InformacaoFechamentoIntimacao = {
@@ -241,53 +217,45 @@ export default class PaginaProcesso extends Pagina {
 					descricao: string;
 				};
 				const reTooltip = /^return infraTooltipMostrar\('([^']+)','Informações do Evento',1000\);$/;
-				const informacoesFechamentoIntimacoes = array.mapOption(
-					eventosIntimacao,
-					evento =>
-						Option.fromNullable(evento.cells[1])
-							.mapNullable(c => c.querySelector('a[onmouseover]'))
-							.mapNullable(lupa => lupa.getAttribute('onmouseover'))
-							.mapNullable(c => c.match(reTooltip))
-							.map(m => m[1])
-							.map(tooltip => {
-								const div = this.doc.createElement('div');
-								div.innerHTML = tooltip;
-								return array.mapOption(
-									Array.from(div.querySelectorAll('font')),
-									texto =>
-										Option.fromNullable(texto.textContent).map(t => t.trim())
-								);
-							})
-							.chain(textos => {
-								const indice = textos.findIndex(
-									textoAtual =>
-										!!textoAtual && /^Fechamento do Prazo:$/.test(textoAtual)
-								);
-								if (indice === -1) return Option.none;
+				const informacoesFechamentoIntimacoes = array.mapOption(eventosIntimacao, evento =>
+					Option.fromNullable(evento.cells[1])
+						.mapNullable(c => c.querySelector('a[onmouseover]'))
+						.mapNullable(lupa => lupa.getAttribute('onmouseover'))
+						.mapNullable(c => c.match(reTooltip))
+						.map(m => m[1])
+						.map(tooltip => {
+							const div = this.doc.createElement('div');
+							div.innerHTML = tooltip;
+							return array.mapOption(Array.from(div.querySelectorAll('font')), texto =>
+								Option.fromNullable(texto.textContent).map(t => t.trim())
+							);
+						})
+						.chain(textos => {
+							const indice = textos.findIndex(
+								textoAtual => !!textoAtual && /^Fechamento do Prazo:$/.test(textoAtual)
+							);
+							if (indice === -1) return Option.none;
 
-								const data = ConversorDataHora.analisar(textos[indice + 1]);
-								const textoDescricao = textos[indice + 2];
-								return Option.fromNullable(
-									textoDescricao.match(/^(\d+) - (.+)$/)
-								)
-									.map(([, numero, descricao]) => ({
-										numero: Utils.parseDecimalInt(numero),
+							const data = ConversorDataHora.analisar(textos[indice + 1]);
+							const textoDescricao = textos[indice + 2];
+							return Option.fromNullable(textoDescricao.match(/^(\d+) - (.+)$/))
+								.map(([, numero, descricao]) => ({
+									numero: Utils.parseDecimalInt(numero),
+									descricao,
+								}))
+								.map(({ numero, descricao }) => {
+									const dados: InformacaoFechamentoIntimacao = {
+										numero,
+										data,
 										descricao,
-									}))
-									.map(({ numero, descricao }) => {
-										const dados: InformacaoFechamentoIntimacao = {
-											numero,
-											data,
-											descricao,
-										};
-										return dados;
-									});
-							})
+									};
+									return dados;
+								});
+						})
 				);
 				if (informacoesFechamentoIntimacoes.length > 0) {
-					const fechamentoMaisRecente = informacoesFechamentoIntimacoes.reduce(
-						(anterior, atual) =>
-							anterior.numero > atual.numero ? anterior : atual
+					const fechamentoMaisRecente = informacoesFechamentoIntimacoes.reduce((anterior, atual) =>
+						anterior.numero > atual.numero ? anterior : atual
 					);
 					const eventosCorrespondentes = linhasEventos.filter(linha =>
 						optionTextoCelula(1)(linha)
@@ -310,30 +278,19 @@ export default class PaginaProcesso extends Pagina {
 	}
 
 	async abrirDocumento(evento: number, documento: number) {
-		const celula = await this.query<HTMLTableCellElement>(
-			`#tdEvento${evento}Doc${documento}`
-		);
-		const link = await this.query<HTMLAnchorElement>(
-			'.infraLinkDocumento',
-			celula
-		);
+		const celula = await this.query<HTMLTableCellElement>(`#tdEvento${evento}Doc${documento}`);
+		const link = await this.query<HTMLAnchorElement>('.infraLinkDocumento', celula);
 		link.click();
 	}
 
 	abrirJanela(url: string, nome: string, abrirEmJanela = false) {
 		this.fecharJanela(nome);
-		const features = abrirEmJanela
-			? 'menubar,toolbar,location,personalbar,status,scrollbars'
-			: '';
+		const features = abrirEmJanela ? 'menubar,toolbar,location,personalbar,status,scrollbars' : '';
 		const win = window.open(url, nome, features);
 		if (win) this.janelasDependentes.set(nome, win);
 	}
 
-	abrirJanelaEditarRequisicao(
-		url: string,
-		numero: number,
-		abrirEmJanela = false
-	) {
+	abrirJanelaEditarRequisicao(url: string, numero: number, abrirEmJanela = false) {
 		this.abrirJanela(url, `editar-requisicao${numero}`, abrirEmJanela);
 	}
 
@@ -350,16 +307,14 @@ export default class PaginaProcesso extends Pagina {
 	}
 
 	async adicionarAlteracoes() {
-		const win = this.doc.defaultView;
+		GM_addStyle(estilos);
+		const win = this.getWindow();
 		win.addEventListener('pagehide', () => {
 			this.fecharJanelasDependentes();
 		});
 		win.addEventListener('message', this.onMensagemRecebida.bind(this));
 		await this.adicionarBotao();
-		(await this.obterLinkListar()).addEventListener(
-			'click',
-			this.onLinkListarClicado.bind(this)
-		);
+		(await this.obterLinkListar()).addEventListener('click', this.onLinkListarClicado.bind(this));
 	}
 
 	async consultarRequisicoesFinalizadas() {
@@ -367,16 +322,11 @@ export default class PaginaProcesso extends Pagina {
 		const docListar = await XHR.buscarDocumento(link.href);
 		const paginaListar = new PaginaListar(docListar);
 		const listaRequisicoes = await paginaListar.obterRequisicoes();
-		const requisicoesFinalizadas = listaRequisicoes.filter(
-			req => req.status === 'Finalizada'
-		);
+		const requisicoesFinalizadas = listaRequisicoes.filter(req => req.status === 'Finalizada');
 		if (requisicoesFinalizadas.length === 1) {
 			const requisicao = requisicoesFinalizadas[0];
 			this.urlEditarRequisicoes.set(requisicao.numero, requisicao.urlEditar);
-			return this.abrirJanelaRequisicao(
-				requisicao.urlConsultar,
-				requisicao.numero
-			);
+			return this.abrirJanelaRequisicao(requisicao.urlConsultar, requisicao.numero);
 		} else {
 			return this.abrirJanelaListar();
 		}
@@ -425,9 +375,7 @@ export default class PaginaProcesso extends Pagina {
 					return { botao, ultimoEvento };
 				} catch (err) {
 					throw new Error(
-						`Não foi possível localizar o último evento do processo.: ${
-							err.message
-						}`
+						`Não foi possível localizar o último evento do processo.: ${err.message}`
 					);
 				}
 			})
@@ -495,9 +443,7 @@ export default class PaginaProcesso extends Pagina {
 		return this.destacarDocumentos(linha => {
 			return [linha]
 				.filter(l =>
-					Option.fromNullable(
-						l.querySelector<HTMLTableCellElement>('td.infraEventoDescricao')
-					)
+					Option.fromNullable(l.querySelector<HTMLTableCellElement>('td.infraEventoDescricao'))
 						.mapNullable(c => c.textContent)
 						.exists(t => regularExpression.test(t.trim()))
 				)
@@ -525,15 +471,10 @@ export default class PaginaProcesso extends Pagina {
 	}
 
 	destacarDocumentosPorTipo(...abreviacoes: string[]) {
-		const regularExpression = new RegExp(
-			'^(' + abreviacoes.join('|') + ')\\d+$'
-		);
+		const regularExpression = new RegExp('^(' + abreviacoes.join('|') + ')\\d+$');
 		return this.destacarDocumentos(linha =>
-			this.queryAll<HTMLAnchorElement>('.infraLinkDocumento', linha).filter(
-				link =>
-					Option.fromNullable(link.textContent).exists(texto =>
-						regularExpression.test(texto)
-					)
+			this.queryAll<HTMLAnchorElement>('.infraLinkDocumento', linha).filter(link =>
+				Option.fromNullable(link.textContent).exists(texto => regularExpression.test(texto))
 			)
 		);
 	}
@@ -587,7 +528,7 @@ export default class PaginaProcesso extends Pagina {
 
 	fecharJanelaProcesso() {
 		this.fecharJanelasDependentes();
-		const win = this.doc.defaultView.wrappedJSObject;
+		const win = this.getWindow().wrappedJSObject;
 		const abertos = win.documentosAbertos;
 		if (abertos) {
 			for (let id in abertos) {
@@ -624,18 +565,15 @@ export default class PaginaProcesso extends Pagina {
 
 	onMensagemRecebida(evt: MessageEvent) {
 		console.info('Mensagem recebida', evt);
-		if (evt.origin === this.doc.location.origin) {
+		if (evt.origin === this.getLocation().origin) {
 			const data: Mensagem = JSON.parse(evt.data);
 			if (data.acao === Acoes.VERIFICAR_JANELA) {
 				if (evt.source) {
-					this.enviarRespostaJanelaAberta(evt.source, evt.origin);
+					this.enviarRespostaJanelaAberta(evt.source as Window, evt.origin);
 				}
 			} else if (data.acao === Acoes.ABRIR_REQUISICAO) {
 				console.log('Pediram-me para abrir uma requisicao', data.requisicao);
-				this.abrirJanelaRequisicao(
-					data.requisicao.urlConsultar,
-					data.requisicao.numero
-				);
+				this.abrirJanelaRequisicao(data.requisicao.urlConsultar, data.requisicao.numero);
 			} else if (data.acao === Acoes.EDITAR_REQUISICAO) {
 				const numero = data.requisicao;
 				this.fecharJanelaRequisicao(numero);
@@ -647,7 +585,7 @@ export default class PaginaProcesso extends Pagina {
 				this.abrirDocumento(data.evento, data.documento);
 			} else if (data.acao === Acoes.BUSCAR_DADOS) {
 				if (evt.source) {
-					this.enviarDadosProcesso(evt.source, evt.origin);
+					this.enviarDadosProcesso(evt.source as Window, evt.origin);
 				}
 			}
 		}
@@ -680,7 +618,5 @@ function optionText(elemento: Node) {
 
 function optionTextoCelula(indice: number) {
 	return (linha: HTMLTableRowElement) =>
-		Option.fromNullable(linha.cells[indice]).mapNullable(
-			celula => celula.textContent
-		);
+		Option.fromNullable(linha.cells[indice]).mapNullable(celula => celula.textContent);
 }

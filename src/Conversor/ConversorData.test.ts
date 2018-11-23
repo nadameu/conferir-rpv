@@ -14,10 +14,7 @@ test('analisar', () => {
 });
 
 test('converter', () => {
-	jsc.assertForall(
-		jsc.datetime,
-		data => ConversorData.converter(data) === dataParaTexto(data)
-	);
+	jsc.assertForall(jsc.datetime, data => ConversorData.converter(data) === dataParaTexto(data));
 });
 
 function dataParaTexto(data: Date) {

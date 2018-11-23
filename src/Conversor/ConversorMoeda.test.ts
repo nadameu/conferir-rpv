@@ -4,17 +4,12 @@ import ConversorMoeda from './ConversorMoeda';
 test('analisar', () => {
 	jsc.assertForall(
 		jsc.number,
-		num =>
-			ConversorMoeda.analisar(valorParaTexto(num)) ===
-			Math.round(num * 100) / 100
+		num => ConversorMoeda.analisar(valorParaTexto(num)) === Math.round(num * 100) / 100
 	);
 });
 
 test('converter', () => {
-	jsc.assertForall(
-		jsc.number,
-		num => ConversorMoeda.converter(num) === valorParaTexto(num)
-	);
+	jsc.assertForall(jsc.number, num => ConversorMoeda.converter(num) === valorParaTexto(num));
 });
 
 function valorParaTexto(num: number) {

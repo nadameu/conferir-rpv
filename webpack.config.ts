@@ -1,80 +1,58 @@
-import CleanWebpackPlugin from 'clean-webpack-plugin';
 import path from 'path';
-import UglifyJsPlugin from 'uglifyjs-webpack-plugin';
-import UserscriptMeta from 'userscript-meta';
+import TerserPlugin from 'terser-webpack-plugin';
+import userscript from 'userscript-meta';
 import webpack from 'webpack';
-
-import pkg from './package.json';
 import metadata from './metadata';
-import GenerateMetaFilePlugin from './lib/GenerateMetaFilePlugin';
 
-const getMetadata = () => {
-	const { name, description, version, author } = pkg;
-	return Object.assign({ name, description, version, author }, metadata);
-};
+interface PackageJson {
+	name: string;
+	version: string;
+	description?: string;
+}
 
-const defaultConfig: webpack.Configuration = {
-	entry: path.resolve(__dirname, pkg.main),
+const pkg: PackageJson = require('./package.json'); // Otherwise TypeScript will complain
+
+const config = (env: { production: boolean } = { production: false }): webpack.Configuration => ({
+	mode: 'none',
+	optimization: { usedExports: true },
+	devtool: env.production ? undefined : 'inline-source-map',
+	entry: path.resolve(__dirname, 'src', 'index.ts'),
+	output: {
+		path: path.resolve(__dirname, 'dist'),
+		filename: `${pkg.name}.user.js`,
+	},
 	module: {
 		rules: [
-			{
-				test: /\.(tsx?)|(js)$/,
-				exclude: /node_modules/,
-				loader: 'babel-loader',
-				sideEffects: false,
-			},
-			{
-				test: /\.css$/,
-				use: ['style-loader', 'css-loader'],
-				sideEffects: true,
-			},
-			{
-				test: /\.html$/,
-				use: ['raw-loader'],
-				sideEffects: false,
-			},
+			{ test: /\.[jt]s$/, use: ['ts-loader'], sideEffects: false },
+			{ test: /\.(html|css)$/, use: ['raw-loader'], sideEffects: false },
 		],
 	},
-	optimization: {
-		minimizer: [],
+	resolve: {
+		extensions: ['.js', '.ts'],
 	},
-	output: {
-		filename: `${pkg.name}.user.js`,
-		path: path.resolve(__dirname, 'dist'),
-		publicPath: '/',
-	},
-	plugins: [
-		new webpack.BannerPlugin({
-			banner: UserscriptMeta.stringify(getMetadata()),
-			raw: true,
-			entryOnly: true,
-		}),
-	],
-	resolve: { extensions: ['.ts', '.js', '.json'] },
-};
-
-const devConfig: webpack.Configuration = Object.assign({}, defaultConfig, {
 	devServer: {
-		contentBase: './dist',
+		contentBase: path.resolve(__dirname, 'dist'),
+		hot: false,
+		open: true,
 	},
-});
-
-const prodConfig: webpack.Configuration = Object.assign({}, defaultConfig, {
 	plugins: [
-		new CleanWebpackPlugin(['dist']),
-		new UglifyJsPlugin({}),
-		...(defaultConfig.plugins || []),
-		new GenerateMetaFilePlugin({
-			filename: `${pkg.name}.meta.js`,
-			metadata: getMetadata(),
+		...(env.production ? [new TerserPlugin()] : []),
+		new webpack.BannerPlugin({
+			banner: generateBanner(),
+			raw: true,
 		}),
 	],
 });
 
-interface Env {
-	development?: boolean;
-	production?: boolean;
+function generateBanner() {
+	const { name, version, description } = pkg;
+	const data = {
+		name,
+		version,
+		...(description ? { description } : {}),
+		...metadata,
+	};
+	return userscript.stringify(data);
 }
-const config = (env: Env = {}) => (env.production ? prodConfig : devConfig);
 
 export default config;

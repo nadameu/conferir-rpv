@@ -2,6 +2,7 @@ import PaginaListar from './PaginaListar';
 import PaginaProcesso from './PaginaProcesso';
 import PaginaRequisicao from './PaginaRequisicao';
 import PaginaOficioRequisitorioListar from './PaginaOficioRequisitorioListar';
+import safePipe from '../Utils/safePipe';
 
 type PaginaComAlteracoes =
 	| PaginaListar
@@ -31,10 +32,12 @@ export default function analisar(doc: Document) {
 
 	let classe: PaginaConstrutor | null = null;
 
-	const url = new URL(doc.location.href);
-	const acao = url.searchParams.get('acao');
-
+	const url = safePipe(doc.location, x => x.href, x => new URL(x));
+	if (!url) {
+		return Promise.reject(new Error('Não foi possível obter o endereço da página.'));
+	}
 	if (doc.domain.match(/^eproc\.(trf4|jf(pr|rs|sc))\.jus\.br$/)) {
+		const acao = safePipe(url, x => x.searchParams.get('acao'));
 		if (acao && acao in classesPorAcao) classe = classesPorAcao[acao];
 	}
 
@@ -43,5 +46,5 @@ export default function analisar(doc: Document) {
 		paginas.set(doc, pagina);
 		return Promise.resolve(pagina);
 	}
-	return Promise.reject(new Error(`Página desconhecida: ${doc.location.href}`));
+	return Promise.reject(new Error(`Página desconhecida: ${url.href}`));
 }

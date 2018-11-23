@@ -1,7 +1,9 @@
-import './includes/estilos.css';
 import analisar from './Pagina/PaginaFactory';
 
+const estilos = require('./includes/estilos.css');
+
 async function main() {
+	GM_addStyle(estilos);
 	const pagina = await analisar(document);
 	return pagina.adicionarAlteracoes();
 }
