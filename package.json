@@ -1,6 +1,6 @@
 {
 	"name": "precatorios-rpv",
-	"version": "22.0.0",
+	"version": "22.0.1",
 	"description": "Auxilia a conferência de RPVs e precatórios.",
 	"main": "src/index.ts",
 	"scripts": {
