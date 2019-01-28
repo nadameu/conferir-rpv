@@ -184,7 +184,7 @@ export default class PaginaRequisicao extends Pagina {
 				'doencaGrave',
 				'dataNascimento'
 			),
-			new Padrao(/^<span class="titBold">Renuncia Valor:<\/span> ?(Sim|Não|)$/, 'renunciaValor'),
+			new Padrao(/^<span class="titBold">Renúncia Valor:<\/span> ?(Sim|Não|)$/, 'renunciaValor'),
 			new Padrao(/^<span class="titBold">Situação Servidor:<\/span> (.*)$/, 'situacaoServidor'),
 			new Padrao(
 				/^<span class="titBold">Destaque dos Honorários Contratuais:<\/span> (Sim|Não)$/,
