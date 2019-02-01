@@ -169,7 +169,7 @@ export default class PaginaRequisicao extends Pagina {
 				'dataBase',
 				'valor'
 			),
-			new Padrao(/^<span class="titBold">(VALOR (?:BLOQUEADO|LIBERADO))<\/span>$/, 'bloqueado'),
+			new Padrao(/^<span class="titBold"[^>]*>(VALOR (?:BLOQUEADO|LIBERADO))<\/span>$/, 'bloqueado'),
 			new Padrao(
 				/^<span class="titBold">Juros de Mora Fix.no Tít. Executivo:<\/span> (.*)$/,
 				'tipoJuros'
